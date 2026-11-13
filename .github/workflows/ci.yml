@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main, backend, frontend, docs, devops]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: Contracts (fmt, build, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch pinned submodules
+        run: make install
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.9.0
+
+      - name: forge fmt --check
+        run: make fmt-check
+
+      - name: forge build
+        run: make build
+
+      - name: forge test
+        run: make test
+
+  # web:
+  #   Added in Phase 5: pnpm lint, pnpm typecheck, pnpm test (Vitest + Playwright).
