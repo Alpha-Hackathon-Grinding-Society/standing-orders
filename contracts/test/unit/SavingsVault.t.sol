@@ -160,20 +160,95 @@ contract SavingsVaultTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = address(usdc);
 
-        vm.prank(user);
+        vm.startPrank(user);
         vm.expectRevert(SavingsVault.NotExecutor.selector);
         vault.release(tokens);
-        vm.prank(user);
         vm.expectRevert(SavingsVault.NotExecutor.selector);
-        vault.forwardToColdWallet(address(usdc), 1);
-
-        // Phase 2 stubs: even the executor can't move funds yet.
-        vm.startPrank(address(executor));
-        vm.expectRevert(SavingsVault.NotImplemented.selector);
-        vault.release(tokens);
-        vm.expectRevert(SavingsVault.NotImplemented.selector);
         vault.forwardToColdWallet(address(usdc), 1);
         vm.stopPrank();
+    }
+
+    function test_V2_releaseSendsEveryTrackedBalanceToBeneficiary() public {
+        MockUSDC other = new MockUSDC();
+        vm.prank(user);
+        vault.deposit(address(usdc), 300e6); // tracked through deposit
+        other.mint(address(vault), 7e6); // tracked through the release list
+
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(other);
+        vm.expectEmit(address(vault));
+        emit SavingsVault.Released(heir, address(usdc), 300e6);
+        vm.prank(address(executor));
+        vault.release(tokens);
+
+        assertEq(usdc.balanceOf(heir), 300e6);
+        assertEq(other.balanceOf(heir), 7e6);
+        assertEq(usdc.balanceOf(address(vault)), 0);
+        assertEq(vault.trackedTokens().length, 2);
+    }
+
+    function test_V2_releaseGoesToTheCurrentBeneficiaryOnly() public {
+        address newHeir = makeAddr("newHeir");
+        vm.startPrank(user);
+        vault.deposit(address(usdc), 100e6);
+        vault.proposeBeneficiary(newHeir); // pending: not yet in effect
+        vm.stopPrank();
+
+        vm.prank(address(executor));
+        vault.release(new address[](0));
+        assertEq(usdc.balanceOf(heir), 100e6);
+        assertEq(usdc.balanceOf(newHeir), 0);
+    }
+
+    function test_V4_coldWalletChangeWaits24hAndForwards() public {
+        address cold = makeAddr("cold");
+        vm.prank(user);
+        vault.proposeColdWallet(cold);
+        uint256 readyAt = block.timestamp + 24 hours;
+
+        vm.warp(readyAt - 1);
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(SavingsVault.ChangeNotReady.selector, readyAt));
+        vault.applyColdWallet();
+        vm.prank(address(executor));
+        vm.expectRevert(SavingsVault.NoColdWallet.selector);
+        vault.forwardToColdWallet(address(usdc), 1);
+
+        vm.warp(readyAt);
+        vm.prank(user);
+        vault.applyColdWallet();
+        assertEq(vault.coldWallet(), cold);
+
+        usdc.mint(address(vault), 10e6);
+        vm.expectEmit(address(vault));
+        emit SavingsVault.ForwardedToColdWallet(address(usdc), cold, 10e6);
+        vm.prank(address(executor));
+        vault.forwardToColdWallet(address(usdc), 10e6);
+        assertEq(usdc.balanceOf(cold), 10e6);
+    }
+
+    function test_V4_coldWalletCanBeClearedAndRulesAreOwnerOnly() public {
+        vm.prank(stranger);
+        vm.expectRevert(SavingsVault.NotOwner.selector);
+        vault.proposeColdWallet(stranger);
+
+        vm.startPrank(user);
+        vm.expectRevert(SavingsVault.NoPendingChange.selector);
+        vault.applyColdWallet();
+        vault.proposeColdWallet(makeAddr("cold"));
+        vm.warp(block.timestamp + 24 hours);
+        vault.applyColdWallet();
+        vault.proposeColdWallet(address(0)); // back to "keep claims in the vault"
+        vm.warp(block.timestamp + 24 hours);
+        vault.applyColdWallet();
+        vm.stopPrank();
+        assertEq(vault.coldWallet(), address(0));
+    }
+
+    function test_V1_depositRejectsZeroToken() public {
+        vm.prank(user);
+        vm.expectRevert(SavingsVault.ZeroAddress.selector);
+        vault.deposit(address(0), 1);
     }
 
     function test_constructorRejectsZeroAddresses() public {
