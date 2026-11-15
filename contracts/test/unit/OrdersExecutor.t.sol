@@ -9,6 +9,9 @@ import {VaultFactory} from "../../src/VaultFactory.sol";
 import {OrdersExecutor} from "../../src/OrdersExecutor.sol";
 import {RULEBOOK_CALLBACK_GAS} from "../../src/Rulebook.sol";
 import {MockUSDC} from "../../src/mocks/MockUSDC.sol";
+import {MockToken} from "../../src/mocks/MockToken.sol";
+import {MockVestingWallet} from "../../src/mocks/MockVestingWallet.sol";
+import {SavingsVault} from "../../src/SavingsVault.sol";
 import {MockCallbackProxy} from "../mocks/MockCallbackProxy.sol";
 import {Permits} from "../helpers/Permits.sol";
 
@@ -169,5 +172,117 @@ contract OrdersExecutorTest is Test {
         proxy.deliver(address(executor), rulebook, payload);
         uint256 splitGas = before - gasleft();
         assertLe(splitGas + proxyOverhead, RULEBOOK_CALLBACK_GAS);
+    }
+
+    // ------------------------------------------------------------------ Rule 2: claim
+
+    function _vesting(address beneficiary) internal returns (MockVestingWallet w, MockToken t) {
+        t = new MockToken("Vested", "VEST");
+        w = new MockVestingWallet(beneficiary, uint64(block.timestamp), 100 days);
+        t.mint(address(w), 1000e18);
+        vm.prank(user);
+        t.approve(address(executor), type(uint256).max);
+    }
+
+    function _claimPayload(address vesting, address token, uint256 nonce) internal view returns (bytes memory) {
+        return abi.encodeWithSelector(OrdersExecutor.claim.selector, address(0), user, vesting, token, nonce);
+    }
+
+    function _setColdWallet(address cold) internal {
+        vm.prank(user);
+        SavingsVault(vault).proposeColdWallet(cold);
+        vm.warp(block.timestamp + 24 hours);
+        vm.prank(user);
+        SavingsVault(vault).applyColdWallet();
+    }
+
+    function test_C2_zeroReleasableIsNoop() public {
+        (MockVestingWallet w, MockToken t) = _vesting(user);
+        vm.expectEmit(address(executor));
+        emit OrdersExecutor.NothingToClaim(user, address(w), 1);
+        proxy.deliver(address(executor), rulebook, _claimPayload(address(w), address(t), 1));
+        assertEq(t.balanceOf(vault), 0);
+        assertEq(t.balanceOf(address(w)), 1000e18);
+    }
+
+    function test_C2_claimMovesVestedToVault() public {
+        (MockVestingWallet w, MockToken t) = _vesting(user);
+        vm.warp(block.timestamp + 10 days);
+        vm.expectEmit(address(executor));
+        emit OrdersExecutor.ClaimExecuted(user, address(w), address(t), 100e18, false, 1);
+        proxy.deliver(address(executor), rulebook, _claimPayload(address(w), address(t), 1));
+        assertEq(t.balanceOf(vault), 100e18);
+        assertEq(t.balanceOf(user), 0);
+        assertEq(w.released(address(t)), 100e18);
+    }
+
+    function test_V4_claimGoesThroughVaultToColdWallet() public {
+        (MockVestingWallet w, MockToken t) = _vesting(user);
+        address cold = makeAddr("cold");
+        _setColdWallet(cold);
+        vm.warp(block.timestamp + 9 days); // 10 days vested in total
+
+        proxy.deliver(address(executor), rulebook, _claimPayload(address(w), address(t), 1));
+        assertEq(t.balanceOf(cold), 100e18);
+        assertEq(t.balanceOf(vault), 0);
+        assertEq(t.balanceOf(user), 0);
+    }
+
+    function test_C2_claimRejectsVestingForSomeoneElse() public {
+        (MockVestingWallet w, MockToken t) = _vesting(makeAddr("someoneElse"));
+        vm.warp(block.timestamp + 10 days);
+        vm.expectRevert(abi.encodeWithSelector(OrdersExecutor.WrongVestingBeneficiary.selector, address(w), user));
+        proxy.deliver(address(executor), rulebook, _claimPayload(address(w), address(t), 1));
+    }
+
+    function test_C2_claimHasTheSameAuthChecks() public {
+        (MockVestingWallet w, MockToken t) = _vesting(user);
+        address impostor = makeAddr("impostor");
+        vm.expectRevert(abi.encodeWithSelector(OrdersExecutor.WrongRulebook.selector, impostor, rulebook));
+        proxy.deliver(address(executor), impostor, _claimPayload(address(w), address(t), 1));
+
+        vm.prank(rulebook);
+        vm.expectRevert(abi.encodeWithSelector(AbstractPayer.NotAuthorized.selector, rulebook, address(proxy)));
+        executor.claim(rulebook, user, address(w), address(t), 1);
+    }
+
+    function test_callbackGasCoversClaimWithColdWalletPlusProxyOverhead() public {
+        (MockVestingWallet w, MockToken t) = _vesting(user);
+        _setColdWallet(makeAddr("cold"));
+        vm.warp(block.timestamp + 9 days);
+
+        bytes memory payload = _claimPayload(address(w), address(t), 1);
+        uint256 before = gasleft();
+        proxy.deliver(address(executor), rulebook, payload);
+        assertLe(before - gasleft() + 160_000, RULEBOOK_CALLBACK_GAS);
+    }
+
+    // ------------------------------------------------------------------ Guardian: release
+
+    function _releasePayload(uint256 nonce) internal view returns (bytes memory) {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdc);
+        return abi.encodeWithSelector(OrdersExecutor.release.selector, address(0), user, tokens, nonce);
+    }
+
+    function test_releaseSendsVaultToBeneficiary() public {
+        _deliverSplit(50e6, 1);
+        address heir = SavingsVault(vault).beneficiary();
+        vm.expectEmit(address(executor));
+        emit OrdersExecutor.VaultReleased(user, vault, 2);
+        proxy.deliver(address(executor), rulebook, _releasePayload(2));
+        assertEq(usdc.balanceOf(heir), 50e6);
+        assertEq(usdc.balanceOf(vault), 0);
+    }
+
+    function test_releaseHasTheSameAuthChecks() public {
+        address impostor = makeAddr("impostor");
+        vm.expectRevert(abi.encodeWithSelector(OrdersExecutor.WrongRulebook.selector, impostor, rulebook));
+        proxy.deliver(address(executor), impostor, _releasePayload(1));
+
+        vm.prank(user);
+        executor.pause();
+        vm.expectRevert(abi.encodeWithSelector(OrdersExecutor.UserPaused.selector, user));
+        proxy.deliver(address(executor), rulebook, _releasePayload(1));
     }
 }

@@ -5,13 +5,16 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AbstractCallback} from "@reactive/src/base/AbstractCallback.sol";
 import {IPayable} from "@reactive/src/interfaces/IPayable.sol";
+import {IVestingWallet} from "./interfaces/IVestingWallet.sol";
+import {SavingsVault} from "./SavingsVault.sol";
 
 /// @title Steward's callback receiver on Base: carries out what each user's Rulebook decides.
 /// @notice One shared executor for all users. A callback is accepted only when:
 ///         1. it comes from the Reactive callback proxy (`onlyServiceProvider`),
 ///         2. its injected sender is the Rulebook that this user registered when creating their vault,
 ///         3. the user is registered, 4. the nonce is unused, and 5. the user is not paused.
-///         Funds only ever move from the user's wallet into the user's own vault, within the user's USDC allowance.
+///         Funds only ever move from the user's wallet into the user's own vault (within the allowances the user
+///         signed), from the vault to the user's cold wallet, or from the vault to the beneficiary on a release.
 /// @dev In Reactive Omni the network injects the *reactive contract's* address as the first callback argument, so
 ///      the library's single immutable `_CALLBACK_SENDER` can't serve a Rulebook per user. We pass `address(0)` for
 ///      it, never use `onlyCallbackSender`, and check `rulebookOf(user)` instead (docs/NOTES.md, Design impact A).
@@ -34,6 +37,16 @@ contract OrdersExecutor is AbstractCallback {
 
     event UserRegistered(address indexed user, address indexed vault, address indexed rulebook, address token);
     event SplitExecuted(address indexed user, address indexed vault, uint256 amount, uint256 nonce);
+    event ClaimExecuted(
+        address indexed user,
+        address indexed vesting,
+        address indexed token,
+        uint256 amount,
+        bool toColdWallet,
+        uint256 nonce
+    );
+    event NothingToClaim(address indexed user, address indexed vesting, uint256 nonce);
+    event VaultReleased(address indexed user, address indexed vault, uint256 nonce);
     /// @notice The user paused every rule. Counts as Guardian activity.
     event Paused(address indexed user);
     /// @notice The user resumed their rules. Counts as Guardian activity.
@@ -46,6 +59,7 @@ contract OrdersExecutor is AbstractCallback {
     error NonceUsed(address user, uint256 nonce);
     error UserPaused(address user);
     error WrongToken(address token, address expected);
+    error WrongVestingBeneficiary(address vesting, address beneficiary);
     error AlreadyPaused();
     error NotPaused();
 
@@ -83,6 +97,41 @@ contract OrdersExecutor is AbstractCallback {
         if (token != reg.token) revert WrongToken(token, reg.token);
         IERC20(token).safeTransferFrom(user, reg.vault, amount);
         emit SplitExecuted(user, reg.vault, amount, nonce);
+    }
+
+    /// @notice Rule 2: releases whatever `vesting` has vested for the user and moves exactly that amount from the
+    ///         user's wallet into their vault (and on to their cold wallet if they set one). Does nothing when zero.
+    /// @dev `release` pays the vesting wallet's owner, so we require that owner to be the user; the pull then relies on
+    ///      the one-time approval the user gave this executor for `token` (C-2, V-4).
+    function claim(address rvmId, address user, address vesting, address token, uint256 nonce)
+        external
+        onlyServiceProvider
+    {
+        Registration memory reg = _authorize(rvmId, user, nonce);
+        if (IVestingWallet(vesting).owner() != user) revert WrongVestingBeneficiary(vesting, user);
+
+        uint256 amount = IVestingWallet(vesting).releasable(token);
+        if (amount == 0) {
+            emit NothingToClaim(user, vesting, nonce);
+            return;
+        }
+        IVestingWallet(vesting).release(token);
+        IERC20(token).safeTransferFrom(user, reg.vault, amount);
+
+        bool toColdWallet = SavingsVault(reg.vault).coldWallet() != address(0);
+        if (toColdWallet) SavingsVault(reg.vault).forwardToColdWallet(token, amount);
+        emit ClaimExecuted(user, vesting, token, amount, toColdWallet, nonce);
+    }
+
+    /// @notice Guardian: sends the user's whole vault to their beneficiary. The Rulebook asks for this only after
+    ///         Active -> Warning -> a full grace period with no activity.
+    function release(address rvmId, address user, address[] calldata tokens, uint256 nonce)
+        external
+        onlyServiceProvider
+    {
+        Registration memory reg = _authorize(rvmId, user, nonce);
+        SavingsVault(reg.vault).release(tokens);
+        emit VaultReleased(user, reg.vault, nonce);
     }
 
     // ------------------------------------------------------------------ user controls
