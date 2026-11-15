@@ -24,7 +24,7 @@ contract RulebookTest is RulebookFixture {
     }
 
     function test_S1_subscribesToUsdcTransfersToTheUser() public view {
-        assertEq(sys.subscriptionCount(), 2);
+        assertEq(sys.subscriptionCount(), 4); // Rule 1, Paused, Unpaused, cron (Guardian off in this config)
         MockSystem.Subscription memory s = sys.subscriptionAt(0);
         assertEq(s.subscriber, address(rulebook));
         assertEq(s.chainId, BASE_SEPOLIA);
@@ -36,7 +36,7 @@ contract RulebookTest is RulebookFixture {
     }
 
     function test_subscribesToTheChosenCron() public view {
-        MockSystem.Subscription memory c = sys.subscriptionAt(1);
+        MockSystem.Subscription memory c = sys.subscriptionAt(sys.subscriptionCount() - 1);
         assertEq(c.chainId, LASNA);
         assertEq(c.contractAddress, ReactiveConstants.LEGACY_SYSTEM);
         assertEq(c.topic0, ReactiveConstants.CRON100);
@@ -45,7 +45,7 @@ contract RulebookTest is RulebookFixture {
     function test_cronIsOptional() public {
         Rulebook rb = _deployRulebook(_config(0));
         assertEq(rb.cronTopic(), 0);
-        assertEq(sys.subscriptionCount(), 3); // 2 from setUp + only the transfer subscription
+        assertEq(sys.subscriptionCount(), 7); // 4 from setUp + Rule 1, Paused, Unpaused (no cron)
     }
 
     function test_constructorValidatesConfig() public {

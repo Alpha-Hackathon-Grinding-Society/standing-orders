@@ -23,6 +23,15 @@ library LogRecords {
         log.txHash = txHash;
     }
 
+    function approval(uint256 chainId, address token, address owner, address spender, uint256 value, uint256 txHash)
+        internal
+        pure
+        returns (IReactive.LogRecord memory log)
+    {
+        log = transfer(chainId, token, owner, spender, value, txHash);
+        log.topic0 = uint256(keccak256("Approval(address,address,uint256)"));
+    }
+
     function cron(uint256 reactiveChainId, uint256 cronTopic, uint256 blockNumber)
         internal
         pure

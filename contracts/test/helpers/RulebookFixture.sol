@@ -16,6 +16,11 @@ abstract contract RulebookFixture is Test {
     uint16 internal constant SPLIT_BPS = 2000; // 20%
     uint256 internal constant PERIOD_CAP = 300e6;
     uint256 internal constant PERIOD_LENGTH = 30 days;
+    uint256 internal constant UNICHAIN_SEPOLIA = 1301;
+    uint256 internal constant CLAIM_INTERVAL = 1 days;
+    uint256 internal constant SILENCE = 90 days;
+    uint256 internal constant GRACE = 14 days;
+    uint256 internal constant CHECK_INTERVAL = 1 hours;
 
     MockSystem internal sys;
     Rulebook internal rulebook;
@@ -24,6 +29,9 @@ abstract contract RulebookFixture is Test {
     address internal usdc = makeAddr("usdc");
     address internal executor = makeAddr("executor");
     address internal vault = makeAddr("vault");
+    address internal heartbeat = makeAddr("heartbeat");
+    address internal vesting = makeAddr("vesting");
+    address internal vestToken = makeAddr("vestToken");
     address internal employer = makeAddr("employer");
     address internal client = makeAddr("client");
     address internal stranger = makeAddr("stranger");
@@ -36,6 +44,7 @@ abstract contract RulebookFixture is Test {
         sys = MockSystem(payable(ReactiveConstants.SYSTEM));
     }
 
+    /// @dev Rule 1 only (Rule 2 and the Guardian off).
     function _config(uint256 cronTopic) internal view returns (Rulebook.Config memory c) {
         address[] memory senders = new address[](2);
         senders[0] = employer;
@@ -45,12 +54,35 @@ abstract contract RulebookFixture is Test {
             token: usdc,
             executor: executor,
             vault: vault,
+            heartbeat: heartbeat,
             splitBps: SPLIT_BPS,
             periodCap: PERIOD_CAP,
             periodLength: PERIOD_LENGTH,
             incomeSenders: senders,
+            vesting: address(0),
+            vestingToken: address(0),
+            claimInterval: 0,
+            watchedChains: new uint256[](0),
+            silencePeriod: 0,
+            gracePeriod: 0,
+            guardianCheckInterval: 0,
             cronTopic: cronTopic
         });
+    }
+
+    /// @dev All three rules on, watching Base Sepolia and Unichain Sepolia, with mainnet-style timers.
+    function _fullConfig() internal view returns (Rulebook.Config memory c) {
+        c = _config(ReactiveConstants.CRON100);
+        c.vesting = vesting;
+        c.vestingToken = vestToken;
+        c.claimInterval = CLAIM_INTERVAL;
+        uint256[] memory chains = new uint256[](2);
+        chains[0] = BASE_SEPOLIA;
+        chains[1] = UNICHAIN_SEPOLIA;
+        c.watchedChains = chains;
+        c.silencePeriod = SILENCE;
+        c.gracePeriod = GRACE;
+        c.guardianCheckInterval = CHECK_INTERVAL;
     }
 
     function _deployRulebook(Rulebook.Config memory c) internal returns (Rulebook rb) {
@@ -69,6 +101,27 @@ abstract contract RulebookFixture is Test {
     function _react(IReactive.LogRecord memory log) internal {
         vm.prank(ReactiveConstants.SYSTEM);
         rulebook.react(log);
+    }
+
+    /// @dev A one-indexed-topic event from `emitter` on `chain` with `topic1` = user (Alive, Paused, Deposited...).
+    function _userEvent(uint256 chain, address emitter, string memory sig) internal {
+        IReactive.LogRecord memory log;
+        log.chainId = chain;
+        log.contractAddress = emitter;
+        log.topic0 = uint256(keccak256(bytes(sig)));
+        log.topic1 = uint256(uint160(user));
+        log.opCode = 2;
+        log.txHash = ++txCounter;
+        _react(log);
+    }
+
+    /// @dev The user's own outgoing transfer of any token on `chain`.
+    function _userTransfer(uint256 chain, address to) internal {
+        _react(LogRecords.transfer(chain, makeAddr("anyToken"), user, to, 1e18, ++txCounter));
+    }
+
+    function _selector(uint256 i) internal view returns (bytes4) {
+        return bytes4(sys.callbackAt(i).payload);
     }
 
     /// @dev Decodes the split callback the Rulebook asked for: (user, token, amount, nonce).
