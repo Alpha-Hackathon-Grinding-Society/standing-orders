@@ -11,7 +11,9 @@ SCRIPT := cd contracts && forge script
 .PHONY: help install build test test-fork fmt fmt-check coverage slither clean \
 	deploy-base-sepolia deploy-rulebook-lasna create-vault-base-sepolia deploy-base deploy-rulebook-reactive \
 	deploy-hello-base deploy-hello-lasna hello-stop-cron \
-	e2e-hello e2e-hello-cron e2e-rule1 e2e-claim e2e-guardian-clear e2e-guardian-release
+	e2e-hello e2e-hello-cron e2e-rule1 e2e-phase3 e2e-claim e2e-guardian-clear e2e-guardian-release \
+	alive pause unpause withdraw propose-beneficiary apply-beneficiary propose-cold-wallet apply-cold-wallet \
+	edit-rules top-up-react check-now status
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-26s %s\n", $$1, $$2}'
@@ -84,11 +86,40 @@ e2e-hello-cron: ## Phase 1: observed cron ticks, interval and lREACT per tick
 e2e-rule1: ## Phase 2: listed and unlisted income -> Lasna -> vault; prints all tx hashes
 	cd contracts && bash script/e2e/rule1.sh
 
-e2e-claim: ## Phase 3: cron claim of vested tokens
-	$(SCRIPT) script/e2e/Claim.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
+e2e-phase3: ## Phase 3: claim, Guardian clear (from Unichain) and Guardian release on one Rulebook; set BENEFICIARY
+	cd contracts && bash script/e2e/phase3.sh
 
-e2e-guardian-clear: ## Phase 3: silence -> Warning -> activity -> Active
-	$(SCRIPT) script/e2e/GuardianClear.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
+# e2e-claim, e2e-guardian-clear and e2e-guardian-release run in sequence inside e2e-phase3 (one Rulebook, one vault).
+e2e-claim e2e-guardian-clear e2e-guardian-release: e2e-phase3
 
-e2e-guardian-release: ## Phase 3: silence -> Warning -> grace -> beneficiary
-	$(SCRIPT) script/e2e/GuardianRelease.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
+# ---------------------------------------------------------------- your everyday actions (U-5)
+# Base side (BASE_SEPOLIA_RPC; set NET=base for mainnet) and Reactive side (LASNA_RPC; NET=reactive for mainnet).
+
+OPS := cd contracts && forge script script/ops/UserOps.s.sol --broadcast --tc
+BASE_SIDE := $(if $(filter base,$(NET)),$(BASE_RPC),$(BASE_SEPOLIA_RPC))
+REACTIVE_SIDE := $(if $(filter reactive,$(NET)),$(REACTIVE_RPC),$(LASNA_RPC))
+
+alive: ## I'm alive (resets the Guardian clock)
+	$(OPS) Alive --rpc-url $(BASE_SIDE)
+pause: ## Pause every rule (withdraw still works)
+	$(OPS) Pause --rpc-url $(BASE_SIDE)
+unpause: ## Resume every rule
+	$(OPS) Unpause --rpc-url $(BASE_SIDE)
+withdraw: ## Withdraw from your vault (WITHDRAW_TOKEN, WITHDRAW_AMOUNT optional)
+	$(OPS) Withdraw --rpc-url $(BASE_SIDE)
+propose-beneficiary: ## Propose a new BENEFICIARY (applies after 24h)
+	$(OPS) ProposeBeneficiary --rpc-url $(BASE_SIDE)
+apply-beneficiary: ## Apply the proposed beneficiary
+	$(OPS) ApplyBeneficiary --rpc-url $(BASE_SIDE)
+propose-cold-wallet: ## Propose a COLD_WALLET for claims (applies after 24h)
+	$(OPS) ProposeColdWallet --rpc-url $(BASE_SIDE)
+apply-cold-wallet: ## Apply the proposed cold wallet
+	$(OPS) ApplyColdWallet --rpc-url $(BASE_SIDE)
+edit-rules: ## Change Rule 1 (SPLIT_BPS, PERIOD_CAP, INCOME_SENDERS) on your Rulebook
+	$(OPS) EditRules --rpc-url $(REACTIVE_SIDE)
+top-up-react: ## Send TOP_UP_WEI of REACT to your Rulebook and clear its debt
+	$(OPS) TopUpReact --rpc-url $(REACTIVE_SIDE)
+check-now: ## Advance the Guardian by timestamp if cron is late
+	$(OPS) CheckNow --rpc-url $(REACTIVE_SIDE)
+status: ## Print your Rulebook's Guardian state, clocks and REACT balance
+	cd contracts && forge script script/ops/UserOps.s.sol --tc Status --rpc-url $(REACTIVE_SIDE)

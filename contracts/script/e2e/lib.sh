@@ -10,13 +10,14 @@ json() { node -e "const j=JSON.parse(require('fs').readFileSync('$1','utf8'));co
 # broadcast_tx SCRIPT CHAIN INDEX   -> tx hash of the INDEX-th receipt in the latest broadcast of SCRIPT
 broadcast_tx() { json "broadcast/$1/$2/run-latest.json" ".receipts[$3].transactionHash"; }
 
-# wait_lasna_log ADDRESS EVENT_SIG TOPIC1 FROM_BLOCK   -> tx hash of the first matching log on Lasna (polls)
+# wait_lasna_log ADDRESS EVENT_SIG TOPIC1 FROM_BLOCK   -> tx hash of the first matching log on Lasna (polls).
+# Pass "" as TOPIC1 to match any.
 wait_lasna_log() {
   local address=$1 topic0 topic1=$3 from=$4 start tx=""
   topic0=$(cast keccak "$2"); start=$(date +%s)
   while [ -z "$tx" ]; do
     if [ $(( $(date +%s) - start )) -gt "$E2E_TIMEOUT" ]; then echo "TIMEOUT"; return 1; fi
-    tx=$(cast logs --from-block "$from" --address "$address" "$topic0" "$topic1" --rpc-url "$LASNA_RPC" --json 2>/dev/null \
+    tx=$(cast logs --from-block "$from" --address "$address" "$topic0" ${topic1:+"$topic1"} --rpc-url "$LASNA_RPC" --json 2>/dev/null \
       | node -e "const l=JSON.parse(require('fs').readFileSync(0,'utf8')||'[]');console.log(l.length?l[0].transactionHash:'')" || true)
     [ -z "$tx" ] && sleep 5
   done
