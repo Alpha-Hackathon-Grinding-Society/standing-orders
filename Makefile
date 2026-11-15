@@ -8,8 +8,8 @@ export
 FORGE := cd contracts && forge
 SCRIPT := cd contracts && forge script
 
-.PHONY: help install build test fmt fmt-check coverage slither clean \
-	deploy-base-sepolia deploy-rulebook-lasna deploy-base deploy-rulebook-reactive \
+.PHONY: help install build test test-fork fmt fmt-check coverage slither clean \
+	deploy-base-sepolia deploy-rulebook-lasna create-vault-base-sepolia deploy-base deploy-rulebook-reactive \
 	deploy-hello-base deploy-hello-lasna hello-stop-cron \
 	e2e-hello e2e-hello-cron e2e-rule1 e2e-claim e2e-guardian-clear e2e-guardian-release
 
@@ -24,8 +24,11 @@ install: ## Fetch the pinned submodules
 build: ## Compile contracts
 	$(FORGE) build --sizes
 
-test: ## Run unit, fuzz and invariant tests
+test: ## Run unit, fuzz and invariant tests (fork tests skip unless BASE_RPC is set in the shell)
 	$(FORGE) test -vvv
+
+test-fork: ## Fork tests against Base mainnet (real USDC)
+	cd contracts && BASE_RPC=$(BASE_RPC) forge test --match-path "test/fork/*" -vv
 
 fmt: ## Format Solidity
 	$(FORGE) fmt
@@ -53,11 +56,14 @@ deploy-hello-lasna: ## Phase 1: HelloReactive on Lasna at the address HelloRecei
 hello-stop-cron: ## Phase 1: unsubscribe HelloReactive from cron
 	$(SCRIPT) script/ops/HelloStopCron.s.sol --rpc-url $(LASNA_RPC) --broadcast
 
-deploy-base-sepolia: ## Phase 2: executor, factory, heartbeat, mocks on Base Sepolia
-	$(SCRIPT) script/DeployBase.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
+deploy-base-sepolia: ## Phase 2: executor, factory, heartbeat, MockUSDC on Base Sepolia
+	$(SCRIPT) script/DeployBase.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast --slow
 
-deploy-rulebook-lasna: ## Phase 2: one Rulebook on Lasna from your wallet
-	$(SCRIPT) script/DeployRulebook.s.sol --rpc-url $(LASNA_RPC) --broadcast
+deploy-rulebook-lasna: ## Phase 2: your Rulebook on Lasna (set INCOME_SENDERS); run before create-vault-base-sepolia
+	$(SCRIPT) script/DeployRulebook.s.sol --rpc-url $(LASNA_RPC) --broadcast --slow
+
+create-vault-base-sepolia: ## Phase 2: permit + createVault on Base Sepolia (set BENEFICIARY)
+	$(SCRIPT) script/ops/CreateVault.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast --slow
 
 # ---------------------------------------------------------------- deploy (mainnet, Phase 4 only)
 
@@ -75,8 +81,8 @@ e2e-hello: ## Phase 1: transfer on Base Sepolia -> Lasna -> callback; prints all
 e2e-hello-cron: ## Phase 1: observed cron ticks, interval and lREACT per tick
 	cd contracts && bash script/e2e/hello-cron.sh
 
-e2e-rule1: ## Phase 2: income split into the vault
-	$(SCRIPT) script/e2e/Rule1.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
+e2e-rule1: ## Phase 2: listed and unlisted income -> Lasna -> vault; prints all tx hashes
+	cd contracts && bash script/e2e/rule1.sh
 
 e2e-claim: ## Phase 3: cron claim of vested tokens
 	$(SCRIPT) script/e2e/Claim.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
