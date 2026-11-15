@@ -96,3 +96,46 @@ Risks and open questions
 Next
 - Phase 2 needs: your answer on the cron default above, and the remaining test funds, which are enough as they stand (PC wallet 2.63 lREACT and 0.018 Base Sepolia ETH). If Phase 2 runs a `Cron10` Rulebook for long, we'll need another faucet top-up.
 - Merge `backend` → `main` when you're happy with this report.
+
+## Phase 2 report: Vault + Rule 1 (valid-entry milestone)
+
+Gate: PASSED. All tests green; `src/` line coverage 100% (≥ 90% required). A full Rule 1 loop ran on Base Sepolia ↔ Lasna with origin, Reactive and callback hashes in `TX_HASHES.md`. The unlisted-sender payment reached the Rulebook and produced no split. Steward is now a scorable entry.
+
+Built
+- `contracts/src/SavingsVault.sol`: owner deposit/withdraw (works while paused), owner-only `Deposited`/`Withdrawn`, beneficiary set at creation then `proposeBeneficiary` → `applyBeneficiary` after 24 h; `release` / `forwardToColdWallet` executor-only stubs (Phase 3)
+- `contracts/src/OrdersExecutor.sol`: `split(rvmId, user, token, amount, nonce)` checks the proxy, that the injected sender is the user's registered Rulebook, that the user is registered, the nonce is unused and the user is not paused; then `transferFrom(user, vault)`. User `pause`/`unpause` emit `Paused`/`Unpaused`; public `coverDebt`
+- `contracts/src/VaultFactory.sol`: deploys the executor; `createVault({token, rulebook, beneficiary}, permit)` with CREATE2 (salt = owner), front-run-safe permit, registration; `predictVault`; one vault per owner
+- `contracts/src/Rulebook.sol`: Rule 1 (subscription `Transfer(to = user)` on USDC, listed-sender filter, bps share, per-period cap that resets on cron and lazily), owner `editRules`, public `coverDebt`, cron topic as a setting
+- `contracts/src/Heartbeat.sol` (`alive()`), `contracts/src/mocks/MockPayer.sol` (test employer)
+- Scripts: `script/DeployBase.s.sol`, `script/DeployRulebook.s.sol`, `script/ops/CreateVault.s.sol`, `script/e2e/Rule1Payers.s.sol`, `Rule1.s.sol`, `rule1.sh`, shared `lib.sh`; mainnet paths refuse to run without `STEWARD_MAINNET_APPROVED=true`
+- Makefile: `create-vault-base-sepolia`, `test-fork`, `e2e-rule1` now runs the full loop; `.env.example` documents every rule setting
+- README: what works today, the Rule 1 tx-hash table, how it works, how to run
+
+Tests
+- forge test: 82 passed, 1 skipped (the fork test, which needs `BASE_RPC`); passes against a Base mainnet fork with real USDC (`make test-fork`)
+- Coverage of `src/`: 100% lines (244/244), 91.7% branches
+- Required IDs: `test_V1_ownerDepositAndWithdrawEmitEvents`, `test_V1_withdrawWorksWhenPaused`, `test_V3_beneficiaryChangeWaits24h`, `test_F2_createVaultAppliesPermitAndRegisters`, `test_F2_secondVaultReverts`, `test_F2_vaultAddressPredictable`, `test_S1_S2_onlyListedSenderTriggersSplit`, `test_S3_shareRespectsBps`, `testFuzz_S3_neverExceedsPeriodCap`, `test_S3_capResetsAfterPeriod`; executor rejects non-proxy, wrong Rulebook, unknown user, replayed nonce, paused user; `test_S3_neverMovesMoreThanAllowance` + fuzz. Also F-1, S-1, V-2, U-3 and an end-to-end `Rule1Flow` test
+- Invariants: Phase 3
+
+On-chain evidence
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 1 split (listed sender) | Base Sepolia → Lasna → Base Sepolia | `0x36a4200afdf67756bb09d2f24dcfba16862ba0ad182acc5f7c851904dc460095` | `0xda7a63891d09d89812ac5e164a0321437b54f8bcb8fec7fda8660bc2b25a2dc5` | `0x5dfcca7df4f273fcbe0ced13abde6e527b59f9dc3128d37979d79be6e58c53b0` |
+| Rule 1 ignored (unlisted sender) | Base Sepolia → Lasna | `0x0c02b7c6415dd4ed7552102742b145401bb67d7eb3cfe49e60a561842d139798` | `0xce4582125e24c26069381b96d52de0cab9bbd0b27727d9d7f0f84ef42c890c46` | none (by design) |
+
+Decisions and findings (NOTES §12)
+- Rule 1 origin → callback ≈ 2 s. A split costs 0.0182 lREACT on Lasna plus 0.0000010 ETH on Base Sepolia; an ignored payment costs 0.0115 lREACT.
+- Real Base USDC accepts our permit, and its `transferFrom` emits no `Approval`, so executor pulls can't fake user activity.
+- Code-level choices that follow approved A/B/C: `rulebook` in `createVault`'s config; the factory deploys the executor (no admin key); `AbstractCallback` built with `address(0)` as sender; lazy plus cron period reset; cron as a setting.
+- Safety invariant 4 now reads "only from the callback proxy, only when the injected sender is the Rulebook the vault owner registered, never with a repeated nonce" (Design A). CLAUDE.md still has the old wording; I haven't edited your brief.
+
+Risks and open questions
+- **The permit is a lifetime budget, not per period.** The executor's allowance shrinks with each split, and when it's used up, splits fail and are still charged. Default: the dashboard shows the remaining allowance (Phase 5) and an ops script re-signs it.
+- **One vault per wallet per factory.** The PC wallet's Phase 2 vault is bound to this Rulebook. Phase 3 changes the executor (claim and release), so it redeploys `DeployBase` and gets a fresh factory, vault and Rulebook for the same wallet. No action needed.
+- The Phase 2 Rulebook runs `Cron100` (≈ 10 lREACT/day) on 0.45 lREACT, so it goes into debt within about an hour and then stops. That's harmless: Phase 3 replaces it. Default: let it lapse.
+- The test beneficiary is `0x…bEEF` (a placeholder). Phase 3's Guardian release e2e will use a beneficiary you choose; your phone wallet is a good option.
+
+Next
+- Phase 3 needs more lREACT. The PC wallet has 2.0 lREACT, and a Guardian demo Rulebook on `Cron10` burns ≈ 4 lREACT/hour. Please send about **0.05 Sepolia ETH** (≈ 5 lREACT) to the PC wallet `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502`, or claim it from a faucet.
+- Unichain Sepolia ETH for the second watched chain (G-4): a small amount (≈ 0.005 ETH) on the PC wallet.
+- Tell me which address should be the Guardian test beneficiary.

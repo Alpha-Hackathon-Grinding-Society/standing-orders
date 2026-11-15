@@ -167,9 +167,28 @@ Contracts: `src/hello/HelloReactive.sol`, `src/hello/HelloReceiver.sol`, `src/he
 
 A Rulebook tick that exits after one timestamp comparison will cost about the same as HelloReactive's. Mainnet REACT gas price may differ; Phase 4 rechecks.
 
+## 12. Phase 2 live measurements and decisions (2026-11-15)
+
+| Item | Value |
+| --- | --- |
+| Rule 1 origin → callback | 8 Base Sepolia blocks (~2 s) |
+| lREACT per income event that triggers a split (`react` + callback request) | 0.0181995 |
+| lREACT per ignored income event (unlisted sender) | 0.0114804 |
+| ETH per split callback on Base Sepolia | 0.0000010312 (143k gas tx; 400k limit) |
+| Real Base USDC (fork test) | Accepts our permit; `transferFrom` emits `Transfer(user → vault)` and **no** `Approval`, so the executor's pull never looks like user activity (safety invariant 6) |
+
+**Decisions made in code (all follow approved Design impact A/B/C):**
+- `VaultFactory.createVault(config, permit)`: `config` = `{token, rulebook, beneficiary}`. `rulebook` is new versus CLAUDE.md task 2, per Design A. The executor stores `{vault, token, rulebook}`; there's no separate `incomeChain` field, because Rule 1's income token, the executor and the vault all live on the same chain (Base).
+- The factory deploys `OrdersExecutor` in its constructor, so the executor trusts exactly one factory and neither has an admin key.
+- `AbstractCallback` is constructed with `callbackSender_ = address(0)`, and `onlyCallbackSender` is never used. The executor checks `injectedSender == rulebookOf(user)`.
+- The initial beneficiary is set once by the factory at creation, with no delay. Later changes wait 24 hours.
+- The cap period rolls over on cron **and** lazily before any split, so a late cron never blocks or over-allows a split.
+- The cron topic is a Rulebook constructor setting (approved default C): `Cron100` on Lasna, `Cron1000` on mainnet.
+- **The permit is a lifetime budget**, not per period: the executor's allowance shrinks with every split. When it runs out, splits fail on Base (and are still charged) until the user signs a new permit or approval. Phase 5's dashboard should show the remaining allowance.
+
 ---
 
-## Design impact (needs a decision before Phase 2)
+## Design impact (A and B approved 2026-11-15; C approved with the Phase 1 cron default)
 
 **A. Callback authentication: "ReactVM id = vault owner" becomes "callback sender = the owner's registered Rulebook."**
 In Omni, the executor sees the *Rulebook's address*, not the user's wallet (§6). `AbstractCallback`'s single immutable `_CALLBACK_SENDER` also can't serve one shared executor with a Rulebook per user.

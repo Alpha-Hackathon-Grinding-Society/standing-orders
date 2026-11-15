@@ -4,6 +4,30 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
+## Phase 2: Rule 1, pay yourself first (2026-11-15)
+
+User (deployer) `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502`. Script: `make e2e-rule1`. Two test employers each paid the user 100 test USDC. The Rulebook lists only the first, with a 20% split and a 100 USDC cap per 30 days.
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 1 split (listed sender) | Base Sepolia → Lasna → Base Sepolia | `0x36a4200afdf67756bb09d2f24dcfba16862ba0ad182acc5f7c851904dc460095` | `0xda7a63891d09d89812ac5e164a0321437b54f8bcb8fec7fda8660bc2b25a2dc5` (`SplitRequested`) | `0x5dfcca7df4f273fcbe0ced13abde6e527b59f9dc3128d37979d79be6e58c53b0` (`SplitExecuted`) |
+| Rule 1 ignored (unlisted sender) | Base Sepolia → Lasna | `0x0c02b7c6415dd4ed7552102742b145401bb67d7eb3cfe49e60a561842d139798` | `0xce4582125e24c26069381b96d52de0cab9bbd0b27727d9d7f0f84ef42c890c46` (`IncomeIgnored`) | none, by design |
+
+Result: vault balance 0 → **20.000000 USDC**, exactly 20% of the listed payment. The unlisted payment reached the Rulebook and produced no callback. The callback landed 8 Base Sepolia blocks (~2 s) after the origin tx.
+
+### Deployments (Base Sepolia, `contracts/deployments/base-sepolia.json`; Lasna, `rulebook-lasna.json`)
+
+| Contract | Network | Address | Deploy tx |
+| --- | --- | --- | --- |
+| MockUSDC | Base Sepolia | `0xCd9f66e15272cf3979c4e7fdd64A358A0e6cf913` | `0x7cb12ef40e5c3b0f94a3ca3ff4c7562e716848f4cc6f97d86b9fa501645ed115` |
+| VaultFactory (deploys OrdersExecutor) | Base Sepolia | `0x6827BA82fd12aA867E5e90a2eb9bDa2CA3Bd82af` | `0xf27bf0067cc738fe49d6700ea2df6b2820c9dbeda4fa7cf00dafad69cc8fd2ab` |
+| OrdersExecutor | Base Sepolia | `0x0736566E3E0752638F572Ba417adEA34288BF92B` | same tx as the factory; funded with 0.001 ETH in `0xd05ecde6af797626dbde10a84f152abb35c657699c0685fa5928532099a28688` |
+| Heartbeat | Base Sepolia | `0x8D596aEAE3a061b45647bFDc59af1B4ceb86F244` | `0xebd7cc1a99767b07983e775de6838f5e73c453b923cc140b438005dce9757b2f` |
+| MockPayer (listed employer) | Base Sepolia | `0x8e836Dde6681cC7a1b8DEAB589101E2E05482c39` | `0xafcce8f7339913f9ee41ca3cb82073c23b6fc3c4895edb2b59e122b7aec379ff` |
+| MockPayer (unlisted) | Base Sepolia | `0x48426FA16ab8D6eF4780Df22ab8D6c4Ae080734B` | `0xfeb8b17bd361c08a46aa0f788693610a3430dc626917bd002f78d13836cf5c56` |
+| Rulebook (user's, `Cron100`) | Lasna | `0x1Ad42B72F76BE45be36daa04292d5E1397E902B7` | `0xda2b811ecbdbed079ca36aac4816107fce0a65571a4e973f05617d8e68a5d1c9` |
+| SavingsVault (user's, via `createVault` + permit) | Base Sepolia | `0x27288a3594086bFB1DD260aa330b3fdAfEaED371` | `0xd9cb39da8afcb9a0eeef6e7f4776a030def93c585970374e39116fc58f4a7f31` |
+
 ## Phase 1: hello loop and cron (2026-11-15)
 
 Deployer `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502` on both chains. Scripts: `make e2e-hello`, `make e2e-hello-cron`.
