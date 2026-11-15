@@ -1,0 +1,9 @@
+{
+  "callbackProxy": "0x476F44b11F5C942c58f4c8E3d0300E5710743585",
+  "chainId": 84532,
+  "deployer": "0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502",
+  "helloReceiver": "0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447",
+  "lasnaNonce": 0,
+  "mockUsdc": "0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686",
+  "predictedHelloReactive": "0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686"
+}

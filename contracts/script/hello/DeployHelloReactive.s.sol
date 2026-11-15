@@ -15,6 +15,8 @@ contract DeployHelloReactive is Script {
         uint256 key = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(key);
         uint256 funding = vm.envOr("HELLO_REACTIVE_FUNDING_WEI", uint256(1 ether));
+        // Set HELLO_CRON_TOPIC=0 to skip the cron subscription (e.g. when ticks were already measured).
+        uint256 cronTopic = vm.envOr("HELLO_CRON_TOPIC", ReactiveConstants.CRON10);
 
         string memory base = vm.readFile(IN);
         uint256 originChainId = vm.parseJsonUint(base, ".chainId");
@@ -28,8 +30,7 @@ contract DeployHelloReactive is Script {
         );
 
         vm.startBroadcast(key);
-        HelloReactive hello =
-            new HelloReactive{value: funding}(originChainId, usdc, originChainId, receiver, ReactiveConstants.CRON10);
+        HelloReactive hello = new HelloReactive{value: funding}(originChainId, usdc, originChainId, receiver, cronTopic);
         vm.stopBroadcast();
 
         console2.log("HelloReactive", address(hello));
@@ -37,7 +38,7 @@ contract DeployHelloReactive is Script {
         string memory j = "hello-lasna";
         vm.serializeUint(j, "chainId", block.chainid);
         vm.serializeUint(j, "deployBlock", block.number);
-        vm.serializeUint(j, "cronTopic", ReactiveConstants.CRON10);
+        vm.serializeUint(j, "cronTopic", cronTopic);
         string memory out = vm.serializeAddress(j, "helloReactive", address(hello));
         vm.writeJson(out, OUT);
     }

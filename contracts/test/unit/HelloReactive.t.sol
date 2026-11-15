@@ -54,6 +54,15 @@ contract HelloReactiveTest is Test {
         assertTrue(hello.cronActive());
     }
 
+    function test_cronIsOptional() public {
+        HelloReactive noCron = new HelloReactive(BASE_SEPOLIA, token, BASE_SEPOLIA, receiver, 0);
+        assertFalse(noCron.cronActive());
+        assertEq(sys.subscriptionCount(), 3); // two from setUp, one (the transfer) from noCron
+
+        vm.expectRevert(HelloReactive.CronAlreadyStopped.selector);
+        noCron.stopCron();
+    }
+
     function test_transferRequestsPingCallback() public {
         vm.expectEmit(address(hello));
         emit HelloReactive.TransferSeen(0xabc, alice, bob, 100e6);

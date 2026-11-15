@@ -6,6 +6,11 @@ import {IReactive} from "@reactive/src/interfaces/IReactive.sol";
 import {ISystemContract} from "@reactive/src/interfaces/ISystemContract.sol";
 import {ReactiveConstants} from "../libraries/ReactiveConstants.sol";
 
+/// @dev Callback gas limit. It is the gas limit of the whole destination tx: the proxy keeps about 135k for
+///         its own accounting and calldata takes about 25k, so the method gets roughly `HELLO_CALLBACK_GAS - 160k`.
+///         Fees are charged on gas used, not on this limit (docs/NOTES.md section 5).
+uint64 constant HELLO_CALLBACK_GAS = 500_000;
+
 /// @title Phase 1 reactive contract on Lasna.
 /// @notice Watches MockUSDC `Transfer` on the origin chain and pings `HelloReceiver` on the destination chain.
 ///         Also subscribes to one cron topic and counts ticks, so we can measure the real tick interval and cost.
@@ -13,8 +18,6 @@ import {ReactiveConstants} from "../libraries/ReactiveConstants.sol";
 contract HelloReactive is AbstractReactive {
     /// @notice topic0 of `Transfer(address,address,uint256)`.
     uint256 internal constant TRANSFER_TOPIC = uint256(keccak256("Transfer(address,address,uint256)"));
-    /// @notice Callback gas limit; well above the network minimum of 100,000.
-    uint64 internal constant CALLBACK_GAS = 200_000;
 
     error NotOwner();
     error CronAlreadyStopped();
@@ -40,7 +43,7 @@ contract HelloReactive is AbstractReactive {
     /// @param token_ MockUSDC address.
     /// @param destinationChainId_ Chain where HelloReceiver lives (Base Sepolia).
     /// @param receiver_ HelloReceiver address.
-    /// @param cronTopic_ One of the `ReactiveConstants.CRON*` topics.
+    /// @param cronTopic_ One of the `ReactiveConstants.CRON*` topics, or 0 for no cron subscription.
     constructor(
         uint256 originChainId_,
         address token_,
@@ -56,15 +59,17 @@ contract HelloReactive is AbstractReactive {
         cronTopic = cronTopic_;
 
         SYSTEM.subscribe(originChainId_, token_, TRANSFER_TOPIC, REACTIVE_IGNORE, REACTIVE_IGNORE, REACTIVE_IGNORE);
-        SYSTEM.subscribe(
-            block.chainid,
-            ReactiveConstants.LEGACY_SYSTEM,
-            cronTopic_,
-            REACTIVE_IGNORE,
-            REACTIVE_IGNORE,
-            REACTIVE_IGNORE
-        );
-        cronActive = true;
+        if (cronTopic_ != 0) {
+            SYSTEM.subscribe(
+                block.chainid,
+                ReactiveConstants.LEGACY_SYSTEM,
+                cronTopic_,
+                REACTIVE_IGNORE,
+                REACTIVE_IGNORE,
+                REACTIVE_IGNORE
+            );
+            cronActive = true;
+        }
     }
 
     /// @inheritdoc IReactive
@@ -118,7 +123,7 @@ contract HelloReactive is AbstractReactive {
         bytes memory payload = abi.encodeWithSignature("ping(address,address,uint256)", address(0), from, value);
         SYSTEM.requestCallbackV_1_0(
             ISystemContract.CallbackConfiguration_V_1_0({
-                chainId: destinationChainId, recipient: receiver, gasLimit: CALLBACK_GAS, payload: payload
+                chainId: destinationChainId, recipient: receiver, gasLimit: HELLO_CALLBACK_GAS, payload: payload
             })
         );
     }

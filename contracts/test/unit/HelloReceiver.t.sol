@@ -6,6 +6,7 @@ import {AbstractPayer} from "@reactive/src/base/AbstractPayer.sol";
 import {AbstractCallback} from "@reactive/src/base/AbstractCallback.sol";
 import {IPayable} from "@reactive/src/interfaces/IPayable.sol";
 import {HelloReceiver} from "../../src/hello/HelloReceiver.sol";
+import {HELLO_CALLBACK_GAS} from "../../src/hello/HelloReactive.sol";
 import {MockCallbackProxy} from "../mocks/MockCallbackProxy.sol";
 
 contract HelloReceiverTest is Test {
@@ -33,6 +34,17 @@ contract HelloReceiverTest is Test {
         assertEq(receiver.lastRvmId(), helloReactive);
         assertEq(receiver.lastFrom(), alice);
         assertEq(receiver.lastValue(), 100e6);
+    }
+
+    /// @dev Regression for the first live run: with a 200k limit the proxy left ping ~40k and it ran out of gas.
+    ///      The destination tx limit must cover ping (first call, cold storage) plus the proxy's ~160k overhead.
+    function test_callbackGasCoversPingPlusProxyOverhead() public {
+        uint256 proxyOverhead = 80_000 + 50_000 + 30_000; // _extraGas + _maxChargeGas + calldata/failure-event margin
+        bytes memory payload = _pingPayload(alice, 100e6);
+        uint256 before = gasleft();
+        proxy.deliver(address(receiver), helloReactive, payload);
+        uint256 pingGas = before - gasleft();
+        assertLe(pingGas + proxyOverhead, HELLO_CALLBACK_GAS);
     }
 
     function test_rejectsCallerThatIsNotTheProxy() public {
