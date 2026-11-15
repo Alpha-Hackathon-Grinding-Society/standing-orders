@@ -10,7 +10,8 @@ SCRIPT := cd contracts && forge script
 
 .PHONY: help install build test fmt fmt-check coverage slither clean \
 	deploy-base-sepolia deploy-rulebook-lasna deploy-base deploy-rulebook-reactive \
-	e2e-hello e2e-rule1 e2e-claim e2e-guardian-clear e2e-guardian-release
+	deploy-hello-base deploy-hello-lasna hello-stop-cron \
+	e2e-hello e2e-hello-cron e2e-rule1 e2e-claim e2e-guardian-clear e2e-guardian-release
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-26s %s\n", $$1, $$2}'
@@ -43,6 +44,15 @@ clean: ## Remove build output
 
 # ---------------------------------------------------------------- deploy (testnet)
 
+deploy-hello-base: ## Phase 1: MockUSDC + HelloReceiver on Base Sepolia (run before deploy-hello-lasna)
+	$(SCRIPT) script/hello/DeployHelloBase.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast --slow
+
+deploy-hello-lasna: ## Phase 1: HelloReactive on Lasna at the address HelloReceiver expects
+	$(SCRIPT) script/hello/DeployHelloReactive.s.sol --rpc-url $(LASNA_RPC) --broadcast --slow
+
+hello-stop-cron: ## Phase 1: unsubscribe HelloReactive from cron
+	$(SCRIPT) script/ops/HelloStopCron.s.sol --rpc-url $(LASNA_RPC) --broadcast
+
 deploy-base-sepolia: ## Phase 2: executor, factory, heartbeat, mocks on Base Sepolia
 	$(SCRIPT) script/DeployBase.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
 
@@ -59,8 +69,11 @@ deploy-rulebook-reactive: ## Phase 4: your Rulebook on Reactive mainnet (needs e
 
 # ---------------------------------------------------------------- end-to-end testnet loops
 
-e2e-hello: ## Phase 1: hello loop + cron on Base Sepolia <-> Lasna
-	$(SCRIPT) script/e2e/Hello.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
+e2e-hello: ## Phase 1: transfer on Base Sepolia -> Lasna -> callback; prints all three tx hashes
+	cd contracts && bash script/e2e/hello.sh
+
+e2e-hello-cron: ## Phase 1: observed cron ticks, interval and lREACT per tick
+	cd contracts && bash script/e2e/hello-cron.sh
 
 e2e-rule1: ## Phase 2: income split into the vault
 	$(SCRIPT) script/e2e/Rule1.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
