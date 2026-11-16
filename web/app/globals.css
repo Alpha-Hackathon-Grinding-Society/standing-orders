@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* DESIGN.md theme extension, as Tailwind v4 theme variables (app mode, Steward variant). */
+@theme {
+  --color-canvas: #000000;
+  --color-surface: #101010;
+  --color-surface-raised: #1c1c1d;
+  --color-surface-input: #242426;
+  --color-surface-active: #2f2f31;
+
+  --color-ink: #f5f5f7;
+  --color-ink-default: rgba(255, 255, 255, 0.87);
+  --color-ink-secondary: rgba(245, 245, 247, 0.7);
+  --color-ink-mono: rgba(245, 245, 247, 0.75);
+  --color-ink-muted: rgba(245, 245, 247, 0.5);
+  --color-ink-faint: rgba(245, 245, 247, 0.3);
+  --color-hairline: rgba(245, 245, 247, 0.2);
+
+  --color-royal: #2756fc;
+  --color-maya: #62d0ff;
+  --color-quartz: #cbb5ff;
+  --color-malachite: #00c853;
+  --color-success: #1a9f44;
+  --color-danger: #bc001d;
+  --color-danger-text: #ff5a6a;
+  --color-warning: #f5a524;
+
+  --font-sans: var(--font-inter), "Inter Variable", Inter, system-ui, sans-serif;
+  --font-mono: var(--font-roboto-mono), "Roboto Mono", ui-monospace, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --ease-reactive: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink-default);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The logo gradient, used once on the page: the vault card's 1px top border. */
+.gradient-top {
+  position: relative;
+  overflow: hidden;
+}
+.gradient-top::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, #62d0ff, #3c2eff, #cbb5ff);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-maya);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
