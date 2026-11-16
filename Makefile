@@ -13,7 +13,7 @@ SCRIPT := cd contracts && forge script
 	deploy-hello-base deploy-hello-lasna hello-stop-cron \
 	e2e-hello e2e-hello-cron e2e-rule1 e2e-phase3 e2e-claim e2e-guardian-clear e2e-guardian-release \
 	alive pause unpause withdraw propose-beneficiary apply-beneficiary propose-cold-wallet apply-cold-wallet \
-	edit-rules top-up-react check-now status
+	edit-rules top-up-react check-now status \n	web-install web-sync web-dev web-check web-e2e
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-26s %s\n", $$1, $$2}'
@@ -123,3 +123,19 @@ check-now: ## Advance the Guardian by timestamp if cron is late
 	$(OPS) CheckNow --rpc-url $(REACTIVE_SIDE)
 status: ## Print your Rulebook's Guardian state, clocks and REACT balance
 	cd contracts && forge script script/ops/UserOps.s.sol --tc Status --rpc-url $(REACTIVE_SIDE)
+
+# ---------------------------------------------------------------- web (Phase 5)
+# On Windows, run these from a path with an upper-case drive letter (C:...), or Next.js may load React twice.
+
+WEB := cd web && pnpm
+
+web-install: ## Install the page's dependencies (pnpm)
+	$(WEB) install --frozen-lockfile
+web-sync: ## Copy Rulebook bytecode and deployments into web/lib/generated (after forge build or a deploy)
+	$(WEB) sync
+web-dev: ## Run the page at http://localhost:3000 (add ?preview=active|warning|released|paused|lowreact|novault)
+	$(WEB) dev
+web-check: ## Lint, typecheck, format check and unit tests for the page
+	$(WEB) lint && $(WEB) typecheck && $(WEB) format:check && $(WEB) test
+web-e2e: ## Build the page and run the Playwright smoke test
+	$(WEB) build && $(WEB) test:e2e
