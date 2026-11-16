@@ -4,6 +4,23 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
+## Phase 5: a vault set up end to end from the page (2026-11-16)
+
+A second MetaMask mobile account, `0xc8180E32107C82E84Ea8a1256Fab39cC616bf0b7`, with no vault and no key on this machine, set up Steward from the Next.js page (`web/`, served on the LAN) and signed every step there. Settings: 20% of USDC from the listed sender `0x1501…0502`, at most 25 USDC per 30 days; permit budget 100 USDC; Claim and secure off; Guardian 90 d / 14 d with beneficiary `0x810f…3276`; `Cron1000`; Rulebook funded with 0.1 lREACT. The account was funded beforehand from the PC wallet with 0.5 lREACT ([0x6ff632f4…ee8c](https://lasna.reactscan.net/tx/0x6ff632f4caf22266676d536a1b8932681db8b847ba4b8859b36ee13eae05ee8c)) and 0.003 ETH ([0x39deafc2…4d43](https://sepolia.basescan.org/tx/0x39deafc2893d124eb5a1f0d0ccfed252ec6bb07b62722de2efa1257d53b84d43)).
+
+| Step | Network | Tx | Result |
+| --- | --- | --- | --- |
+| Rulebook deploy (signed on the page) | Lasna | [0x4f467cc0…831d](https://lasna.reactscan.net/tx/0x4f467cc0d3dca71f58627638c2fdbb3467e81dc5146daca2652019d3abb3831d) | Rulebook `0x80e7C5958626daAE7e5Be8A99F2E30B2226c7F74`, `splitBps` 2000 |
+| Permit + createVault (signed on the page) | Base Sepolia | [0xa6b56620…92bf](https://sepolia.basescan.org/tx/0xa6b56620b4fd2a00d6d03e132f874c4715931f29fbd2fdef196eb53a5f7592bf) | Vault `0xCe5c02d6cEb2340929F00Ef4D2a418DE9cccfC73`, `UserRegistered`, allowance 100 USDC, beneficiary `0x810f…3276` |
+
+**Rule 1 split into the new vault** (10 USDC from the listed sender → 2 USDC saved, under 10 s from payment to vault):
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 1 split | Base Sepolia → Lasna → Base Sepolia | [0x028b6f77…28a1](https://sepolia.basescan.org/tx/0x028b6f771094a4f46e40e2873703a100294b5ac6860827924ce230eb521728a1) | [0x32fcea5a…0136](https://lasna.reactscan.net/tx/0x32fcea5a5b4aae3fe4fb488753c1019fb5ed9cd6228585b6d19feffa88410136) | [0xca46265c…cc88](https://sepolia.basescan.org/tx/0xca46265c602bfd5021a943acce0c3836f36561718983d082581e190cd33bcc88) |
+
+Findings from the run: the page's pre-check refused a wallet address typed as the vesting contract before anything was signed; MetaMask returns error 4100 when the page asks an account the site was not connected with to sign, so the page now tells the user to reconnect with that account ticked.
+
 ## Phase 4 rehearsal: setup from a phone wallet on testnet (2026-11-16)
 
 The mainnet setup flow, run on testnet first: the user's MetaMask mobile wallet `0x810fCBF8A695Ffa0e4480207c667995139F33276` signed every step on the setup page (`web/setup`). No key for it exists on this machine. Settings: 20% of USDC from the listed sender `0x1501…0502`, at most 25 USDC per 30 days; permit budget 100 USDC; Guardian 90 d / 14 d; `Cron100`; Rulebook funded with 0.5 lREACT.
