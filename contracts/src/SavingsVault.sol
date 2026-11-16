@@ -56,13 +56,21 @@ contract SavingsVault {
     error NoColdWallet();
 
     modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwner();
+        _checkOwner();
         _;
     }
 
     modifier onlyExecutor() {
-        if (msg.sender != executor) revert NotExecutor();
+        _checkExecutor();
         _;
+    }
+
+    function _checkOwner() internal view {
+        if (msg.sender != owner) revert NotOwner();
+    }
+
+    function _checkExecutor() internal view {
+        if (msg.sender != executor) revert NotExecutor();
     }
 
     constructor(address owner_, address executor_) {

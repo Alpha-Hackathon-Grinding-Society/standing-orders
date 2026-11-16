@@ -82,6 +82,16 @@ contract OrdersExecutorTest is Test {
         proxy.deliver(address(executor), user, _splitPayload(user, address(usdc), 1, 1));
     }
 
+    function test_F2_registerUserIsFactoryOnlyAndOnce() public {
+        vm.expectRevert(OrdersExecutor.NotFactory.selector);
+        executor.registerUser(makeAddr("other"), vault, address(usdc), rulebook);
+
+        vm.prank(address(factory));
+        vm.expectRevert(abi.encodeWithSelector(OrdersExecutor.AlreadyRegistered.selector, user));
+        executor.registerUser(user, makeAddr("otherVault"), address(usdc), makeAddr("otherRulebook"));
+        assertEq(executor.rulebookOf(user), rulebook, "the first registration stands");
+    }
+
     function test_executorRejectsUnknownUser() public {
         address nobody = makeAddr("nobody");
         vm.expectRevert(abi.encodeWithSelector(OrdersExecutor.UnknownUser.selector, nobody));

@@ -226,6 +226,28 @@ contract GuardianTest is RulebookFixture {
         assertEq(cb.recipient, executor);
     }
 
+    function test_G2_releaseWithClaimOffSendsOnlyUsdc() public {
+        Rulebook.Config memory c = _fullConfig();
+        c.vesting = address(0);
+        c.vestingToken = address(0);
+        rulebook = _deployRulebook(c);
+        deployedAt = block.timestamp;
+
+        _toWarning();
+        _cronAt(rulebook.warningSince() + GRACE + CHECK_INTERVAL);
+        assertEq(uint256(_state()), uint256(Rulebook.GuardianState.Released));
+
+        MockSystem.CallbackRequest memory cb = sys.callbackAt(sys.callbackCount() - 1);
+        assertEq(bytes4(cb.payload), OrdersExecutor.release.selector);
+        bytes memory args = new bytes(cb.payload.length - 4);
+        for (uint256 i; i < args.length; ++i) {
+            args[i] = cb.payload[i + 4];
+        }
+        (,, address[] memory tokens,) = abi.decode(args, (address, address, address[], uint256));
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], usdc);
+    }
+
     function test_G2_releaseNeverInOneStep() public {
         // Even after a silence far longer than silence + grace, the first check only warns.
         _cronAt(deployedAt + 10 * (SILENCE + GRACE));
