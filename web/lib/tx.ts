@@ -21,6 +21,9 @@ export function errorText(error: unknown): string {
   if (text.includes("insufficient funds") || text.includes("exceeds the balance")) {
     return "Your wallet does not hold enough for this transaction and its network fee. Add funds, then try again.";
   }
+  if (e?.code === 4100 || text.includes("not been authorized")) {
+    return "Your wallet has not shared this account with Steward. Disconnect, connect again with this account ticked, then try again.";
+  }
   if (e?.code === -32002 || text.includes("already pending")) {
     return "Your wallet already has a request open. Open it, approve or reject that request, then try again.";
   }
