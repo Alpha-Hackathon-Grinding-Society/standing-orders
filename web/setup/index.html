@@ -43,7 +43,10 @@
     <div class="row"><span>2. Deploy your Rulebook on <span id="rname">Reactive</span></span><span class="mono" id="s1">(~) WAITING</span></div>
     <div class="row"><span>3. Sign the USDC permit on <span id="bname">Base</span></span><span class="mono" id="s2">(~) WAITING</span></div>
     <div class="row"><span>4. Create your vault on <span id="bname2">Base</span></span><span class="mono" id="s3">(~) WAITING</span></div>
-    <button class="primary" id="go" disabled>[ Connect wallet ]</button>
+    <div class="row" style="justify-content:flex-start">
+      <button class="primary" id="go" disabled>[ Connect wallet ]</button>
+      <button id="reset" type="button">[ Start over ]</button>
+    </div>
     <div class="mono" id="msg" role="status" aria-live="polite"></div>
   </section>
 </main>
@@ -82,12 +85,17 @@ async function load() {
 }
 
 async function chain(id, name, rpc, symbol, explorer) {
+  const current = await eth.request({ method: "eth_chainId" });
+  if (BigInt(current) === BigInt(id)) return;
   try { await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex(id) }] }); }
   catch (e) {
-    if (e.code !== 4902 && !(e.data && e.data.originalError && e.data.originalError.code === 4902)) throw e;
+    if (e && e.code === 4001) throw e; // you said no
+    // Unknown network (4902, or -32603 on some MetaMask mobile versions): add it, which also switches to it.
     await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: hex(id), chainName: name, rpcUrls: [rpc],
       nativeCurrency: { name: symbol, symbol: symbol, decimals: 18 }, blockExplorerUrls: [explorer] }] });
   }
+  const now = await eth.request({ method: "eth_chainId" });
+  if (BigInt(now) !== BigInt(id)) throw new Error("MetaMask is still on another network. Switch to " + name + " and press the button again.");
 }
 
 async function receipt(tx) {
@@ -162,9 +170,19 @@ $("go").addEventListener("click", async () => {
     await signPermit();
     await createVault();
   } catch (e) {
-    say("(x) FAILED · " + (e && e.message ? e.message : e) + " Press the button to try again; finished steps are kept.", "bad");
+    const code = e && e.code !== undefined ? " (code " + e.code + ")" : "";
+    const why = e && e.code === 4001 ? "You declined in MetaMask." : (e && e.message ? e.message : String(e));
+    say("(x) FAILED · " + why + code + " Press the button to try again; finished steps are kept.", "bad");
     $("go").disabled = false;
   }
+});
+
+$("reset").addEventListener("click", () => {
+  if (S) localStorage.removeItem(key());
+  rulebook = undefined; permitSig = undefined; me = undefined;
+  for (let i = 0; i < 4; i++) status(i, "(~) WAITING", "");
+  $("go").textContent = "[ Connect wallet ]"; $("go").disabled = !eth;
+  say("Started over. Steps already confirmed on-chain stay on-chain; a Rulebook deployed earlier is not reused.");
 });
 load().catch((e) => say("(x) FAILED · could not load setup.json: " + e.message, "bad"));
 </script>
