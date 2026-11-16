@@ -84,11 +84,13 @@ export function SetupFlow({
       if (existing !== zeroAddress)
         throw new Error("This wallet already has a vault on this network. Reload the page to see it");
       if (plan.choices.claim) {
-        const owner = await base.readContract({
-          address: plan.choices.claim.vesting,
-          abi: vestingOwnerAbi,
-          functionName: "owner",
-        });
+        const owner = await base
+          .readContract({ address: plan.choices.claim.vesting, abi: vestingOwnerAbi, functionName: "owner" })
+          .catch(() => {
+            throw new Error(
+              "That vesting address is not a vesting contract on this network. Check the address, or turn Claim and secure off",
+            );
+          });
         if (owner.toLowerCase() !== user.toLowerCase()) {
           throw new Error(
             "That vesting contract pays a different wallet. Connect the wallet it vests to, or turn Claim and secure off",
