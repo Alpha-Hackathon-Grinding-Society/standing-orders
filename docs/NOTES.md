@@ -26,7 +26,7 @@ This file holds the exact Reactive APIs Steward uses, with sources. When memory,
 | `ISystemContract` | `lib:src/interfaces/ISystemContract.sol:11-31` | `subscribe`, `unsubscribe`, `requestCallbackV_1_0`, `debt`. |
 
 - **Pragma.** Every library file is `pragma solidity ^0.8.29` (e.g. `lib:src/base/AbstractReactive.sol:3`). CLAUDE.md says `^0.8.20`; our contracts use `^0.8.29` and `foundry.toml` pins **solc 0.8.30** so the library compiles.
-- **EVM version.** `foundry.toml` sets `cancun`. Base, Arbitrum and Unichain support it; Lasna's EVM version is not documented. **Confirm in Phase 1** by deploying `HelloReactive`.
+- **EVM version.** `foundry.toml` sets `cancun`. Base, Arbitrum and Unichain support it; Lasna's EVM version is not documented. **Confirmed in Phase 1:** `cancun` bytecode deploys and runs on Lasna (§11).
 - **Import prefix.** The docs import as `@reactive/src/...` (`docs:reactive-contracts.mdx:29-31`). `contracts/remappings.txt` maps `@reactive/` to `lib/reactive-lib-omni/`.
 - **A contract cannot be both reactive and callback**: the two bases set the same immutable `_SERVICE_PROVIDER` to different things and won't compile together (`docs:callback-contracts.mdx:57`).
 - **Library license.** Library files are `SPDX-License-Identifier: UNLICENSED`. Steward's own code is MIT; the library stays an unmodified submodule. Noted in case judges ask.
@@ -71,7 +71,8 @@ This file holds the exact Reactive APIs Steward uses, with sources. When memory,
 - The system contract emits `CallbackRequest(chainId indexed, sender indexed, recipient indexed, version, configuration)`. Explorers and our e2e scripts can filter on it to find the Reactive tx (`docs:reactive-contracts.mdx:299-309`).
 - **Payload first argument:** the network overwrites the first 160 bits of the payload with **the address of the reactive contract that requested the callback**. The payload must declare an `address` first and pass `address(0)` (`docs:reactive-contracts.mdx:266-268`; `lib:src/interfaces/IReactive.sol:34`).
 - **Gas:** minimum callback gas limit is 100,000; smaller requests are ignored (`docs:economy.mdx:98-100`). The proxy withholds `_extraGas` and `_maxChargeGas` before forwarding. Too little left fails with `InsufficientGas`; a revert inside the method surfaces as `CallbackFailure` (`docs:callback-contracts.mdx:87`).
-- **Lookup:** `SYSTEM.getCallbacks(uint256 reactiveTxHash)` returns the destination tx hash for each callback a reactive tx posted (`docs:economy.mdx:264-272`). The e2e scripts use it to print origin → Reactive → callback hashes.
+- **The gas limit is the whole destination tx's limit** (measured in Phase 1, §11). The proxy keeps `_extraGas + _maxChargeGas + failure-event gas` (≈ 135k on Base Sepolia) before calling the recipient, and calldata takes ≈ 25k more. **Budget = method gas + 160k.** Fees are charged on gas used, so a generous limit costs nothing extra.
+- **Lookup:** `SYSTEM.getCallbacks(uint256 reactiveTxHash)` is documented to return the destination tx hash for each callback a reactive tx posted (`docs:economy.mdx:264-272`). **On Lasna in Phase 1 it returned `[]` even for delivered callbacks**, so the e2e scripts instead find the callback through the recipient's own event on the destination chain.
 
 ## 6. Authenticating callbacks: no "ReactVM id" in Omni
 
@@ -95,7 +96,7 @@ This file holds the exact Reactive APIs Steward uses, with sources. When memory,
   | `Cron1000` | 1,000 blocks | `0xe20b31294d84c3661ddc8f423abb9c70310d0cf172aa2714ead78029b325e3f4` | ~17 min | ~2 h |
   | `Cron10000` | 10,000 blocks | `0xd214e1d84db704ed42d37f538ea9bf71e44ba28bc1cc088b2f5deca654677a56` | ~3 h | ~28 h |
 
-- **The two sources disagree on block time (~1 s vs ~7 s).** Phase 1 measures the real interval on Lasna and records it here.
+- **The two sources disagree on block time (~1 s vs ~7 s).** **Phase 1 measured Lasna: 1.07 s per block** (1,000 blocks in 1,072 s), and **`Cron10` ticked every 10.6 s on average over 68 ticks** (§11). The docs column is right for Lasna.
 - **Every tick is billed**, whether `react()` does anything or not, and overlapping subscriptions (e.g. Cron1 + Cron10) are billed separately (`docs:reactive-contracts.mdx:192-194`). The Rulebook subscribes to **one** cron topic, chosen per network, and does all time-based work (Guardian check, claim check, cap reset) on that tick behind timestamp comparisons.
 - **Proposed defaults, to confirm with Phase 1 measurements:** demo/testnet `Cron10` (fine enough for a 30-second Guardian check if blocks are ~1 s); mainnet `Cron1000` (one tick per ~17 min to ~2 h, either way within a 1-hour check interval's tolerance and cheap over a week).
 
@@ -132,9 +133,88 @@ This file holds the exact Reactive APIs Steward uses, with sources. When memory,
   - a `MockSystem`, `vm.etch`ed to `0x8888…`, that records `subscribe` / `requestCallbackV_1_0` calls;
   - a `MockCallbackProxy` that calls the executor with the requesting contract's address injected as the first argument.
 
+## 11. Phase 1 live measurements (2026-11-15, Base Sepolia ↔ Lasna)
+
+Contracts: `src/hello/HelloReactive.sol`, `src/hello/HelloReceiver.sol`, `src/hello/WildcardProbe.sol`. Hashes: `docs/TX_HASHES.md`.
+
+| Question | Answer | Evidence |
+| --- | --- | --- |
+| Injected callback sender ("ReactVM id") | **The reactive contract's own address**, not the deployer wallet. Run 1 payload carried `0x4461…9686` (HelloReactive); run 2 stored `lastRvmId = 0xB49e…82BA` (HelloReactive). | `CallbackFailure` data in `0x965a…1c89`; `HelloReceiver.lastRvmId()` |
+| Who calls the recipient | The callback proxy `0x476F…3585` (`msg.sender`). The tx is sent by a relayer EOA (`0xF7E8…1DDb`) to the proxy. | callback tx `0x57e0…a1f6` |
+| Origin → callback latency | **≈ 1 s**: callback 6 Base Sepolia blocks after the origin tx (blocks are ~0.2 s now). Run 1: 9 blocks. Lasna block timestamps ran ~1 s behind Base's, so per-hop splits are below clock resolution. | block numbers 59256158 → 59256164 |
+| Lasna block time | 1.07 s | 1,000 blocks in 1,072 s |
+| `Cron10` interval | **10.6 s mean** (10 or 11 s), 68 ticks | `TX_HASHES.md` cron table |
+| lREACT per cron tick (tiny handler, ~22k execution gas) | **0.0121971** (first tick 0.0156, cold storage) | balance drop across each tick block |
+| lREACT per ignored event (react returns early) | ≈ 0.0110 | HelloReactive run 2, mint reaction |
+| lREACT per event + callback request | 0.0147532 | balance across Lasna block 8433971 |
+| ETH per callback on Base Sepolia (161k gas tx) | 0.0000011546 ETH | HelloReceiver balance across block 59256164 |
+| Reactive tx gas price | **0**: reactive txs come from the system contract with `effectiveGasPrice = 0`; the network debits the contract's balance in the same block. Measure cost from balance changes, not receipts. | any tick receipt |
+| Charge formula check | Charge ≈ 100 gwei × (execution gas + 100k `_extraGas`). Cron tick: 21,971 + 100,000 = 121,971 gas → 0.0121971 lREACT. | |
+| Contract wildcard + user topic | **Works.** `subscribe(84532, address(0), Transfer, user, *, *)` and the same with `Approval` matched an unnamed token's `approve` and `transfer`; the `from = 0` mint didn't match. | `WildcardProbe`, two Reactive txs |
+| Unsubscribe from an owner call | Works. `stopCron()` (a direct owner tx to the reactive contract) ended the cron subscription; two in-flight ticks still arrived. | `0x6777…2a79` |
+| Callback gas | 200k was too little: the proxy left `ping` ~40k and it ran out of gas, but **the recipient was still charged**. 500k works (161k used in total). | run 1 vs run 2 |
+| `forge script` on Lasna | Works; local simulation of `SYSTEM.subscribe` succeeds, so deploy scripts don't need `forge create`. | deploy txs |
+| Faucet rate | 0.044 Sepolia ETH → 4.62 lREACT (105 per ETH, not 100) | 2026-11-15 |
+
+**Cost consequences (feeds Design impact C).** At ≈ 0.0122 lREACT per minimal tick, a cron costs `0.0122 × 86,400 / interval` per day:
+
+| Cron | Lasna interval | Ticks/day | lREACT/day (minimal handler) |
+| --- | --- | --- | --- |
+| `Cron10` | 10.6 s | 8,150 | ≈ 100 |
+| `Cron100` | ~107 s | 810 | ≈ 10 |
+| `Cron1000` | ~18 min | 81 | ≈ 1 |
+| `Cron10000` | ~3 h | 8 | ≈ 0.1 |
+
+A Rulebook tick that exits after one timestamp comparison will cost about the same as HelloReactive's. Mainnet REACT gas price may differ; Phase 4 rechecks.
+
+## 12. Phase 2 live measurements and decisions (2026-11-15)
+
+| Item | Value |
+| --- | --- |
+| Rule 1 origin → callback | 8 Base Sepolia blocks (~2 s) |
+| lREACT per income event that triggers a split (`react` + callback request) | 0.0181995 |
+| lREACT per ignored income event (unlisted sender) | 0.0114804 |
+| ETH per split callback on Base Sepolia | 0.0000010312 (143k gas tx; 400k limit) |
+| Real Base USDC (fork test) | Accepts our permit; `transferFrom` emits `Transfer(user → vault)` and **no** `Approval`, so the executor's pull never looks like user activity (safety invariant 6) |
+
+**Decisions made in code (all follow approved Design impact A/B/C):**
+- `VaultFactory.createVault(config, permit)`: `config` = `{token, rulebook, beneficiary}`. `rulebook` is new versus CLAUDE.md task 2, per Design A. The executor stores `{vault, token, rulebook}`; there's no separate `incomeChain` field, because Rule 1's income token, the executor and the vault all live on the same chain (Base).
+- The factory deploys `OrdersExecutor` in its constructor, so the executor trusts exactly one factory and neither has an admin key.
+- `AbstractCallback` is constructed with `callbackSender_ = address(0)`, and `onlyCallbackSender` is never used. The executor checks `injectedSender == rulebookOf(user)`.
+- The initial beneficiary is set once by the factory at creation, with no delay. Later changes wait 24 hours.
+- The cap period rolls over on cron **and** lazily before any split, so a late cron never blocks or over-allows a split.
+- The cron topic is a Rulebook constructor setting (approved default C): `Cron100` on Lasna, `Cron1000` on mainnet.
+- **The permit is a lifetime budget**, not per period: the executor's allowance shrinks with every split. When it runs out, splits fail on Base (and are still charged) until the user signs a new permit or approval. Phase 5's dashboard should show the remaining allowance.
+
+## 13. Phase 3 live findings (2026-11-16)
+
+| Item | Finding | Evidence |
+| --- | --- | --- |
+| Unichain Sepolia as an origin | Works: a user transfer there reached the Lasna Rulebook and cleared a Warning (contract wildcard + `from = user`). Listed as origin and destination in the Omni testnet table (`docs` `origins-destinations-testnet-omni.js`). | Run B, `0xf73c…076f` → `0xe86e…9642` |
+| Unsubscribe on release | Stops all spending: the released Rulebook's lREACT balance stayed flat afterwards (runs A and B). Unsubscribing from inside `react()` works. | `Rulebook.state() == 2`, balance unchanged |
+| Demo cost | A full demo run (Cron10, ~10 min, 4+ claims, 2 warnings, 1 clear, 1 release) cost 0.81 lREACT. | Run B |
+| Claims vs the one-time approval | A claim before the user's VEST approval fails on Base and is still charged. The release step in the same callback is rolled back with it, so nothing is left half-done. The setup now approves **before** deploying the Rulebook. | Run A |
+| `VestingWallet.release(token)` | Public; the executor calls it and the tokens go to the vesting owner (the user), then into the vault. No event as tokens vest, so cron is required (C-3). | Run B claim |
+| Leftover REACT after release | A Released Rulebook keeps its remaining REACT and has no way to send it back: 1.99 lREACT (run A) and 0.69 (run B) are stranded. See open question in PROGRESS. | `cast balance` |
+| Direct owner call to a reactive contract | Works and is paid by the caller like any tx (Phase 1 `stopCron`, Phase 3 deploy-time calls). `checkNow` is the same kind of call. | `0x6777…2a79` |
+| Timestamps | Activity is timed with Lasna's `block.timestamp`: the Run A warning fired 186 s after the last activity (silence 180 s + check/cron granularity). | Run A |
+
+## 14. Phase 5 frontend findings (2026-11-16)
+
+| Item | Finding | Evidence |
+| --- | --- | --- |
+| Cron topic on the page | The page deploys Rulebooks on `Cron1000` (`0xe20b3129…e3f4`, about 18 min on Lasna) on both networks. A 1-hour Guardian check interval needs nothing finer, and it costs about 1–1.5 lREACT a day on Lasna (≈ 1.3 REACT a day on mainnet), against several times that for `Cron100`. | `web/lib/networks.ts`, `tests/unit/setup.test.ts` byte match |
+| Rulebook deploy fee | ≈ 3.8 M gas × 100 gwei = 0.38 lREACT on top of the funding sent with it. A wallet needs both, or MetaMask greys out its confirm button. | Phase 4 rehearsal top-up |
+| No Multicall3 on Reactive | Reads on Lasna and Reactive mainnet use JSON-RPC batching (`http(url, { batch: true })`); Base reads use `multicall`. | `web/lib/data.ts` |
+| Log ranges | The public Base Sepolia RPC caps `eth_getLogs` at 200 blocks; publicnode (`base-sepolia-rpc.publicnode.com`, `base-rpc.publicnode.com`) allows 50,000, so the savings history reads in 50k chunks from the deploy block. All these RPCs allow browser CORS. | `NETWORKS.*.logsRpc` |
+| Debt | The system contract's `debt(address)` is read for the REACT card; `OUT OF REACT` shows when there is debt (the Rulebook receives no events until topped up); `[!] LOW REACT` below 1 lREACT on testnet or 4 REACT on mainnet (about 1 and 3 days of running). | `web/components/Controls.tsx` |
+| MetaMask mobile relay | MetaMask mobile can send a transaction through its smart-account delegation (tx `from` is a relayer), but the contract still sees the wallet as `msg.sender`. Steward filters on event topics, so this is safe. | `TX_HASHES.md`, Phase 4 rehearsal |
+| MetaMask account permissions | Asking an account the site was not connected with to sign returns error 4100. The page explains it: disconnect and reconnect with that account ticked. | Phase 5 run |
+| Windows build | Build and serve from a path with an uppercase drive letter (`C:\…`). With `c:\…` Node resolves React twice and prerender fails with `useState of null`. CI on Linux is unaffected. | `Makefile` `web-*` targets |
+
 ---
 
-## Design impact (needs a decision before Phase 2)
+## Design impact (A and B approved 2026-11-15; C approved with the Phase 1 cron default)
 
 **A. Callback authentication: "ReactVM id = vault owner" becomes "callback sender = the owner's registered Rulebook."**
 In Omni, the executor sees the *Rulebook's address*, not the user's wallet (§6). `AbstractCallback`'s single immutable `_CALLBACK_SENDER` also can't serve one shared executor with a Rulebook per user.
@@ -157,23 +237,30 @@ Callbacks are billed to the recipient (§8), and a rejected callback is still ch
 
 *Proposed default for the hackathon:* keep one shared executor, funded by us with a small ETH float via `proxy.depositTo`. Expose a public `coverDebt()`. Show the executor's ETH balance next to the REACT balance, and document the griefing limit in SECURITY.md. Amounts are tiny on Base (≈ a few cents per callback at current gas), and Phase 1 measures the real per-callback charge. The alternative is a callback receiver per user, funded by that user. That is a bigger change, so I'd only consider it if Phase 1 shows the cost is material.
 
-**C. Cron choice and cost.** One cron subscription per Rulebook, billed every tick (§7). Defaults: `Cron10` on testnet and `Cron1000` on mainnet, finalised from Phase 1's measured tick interval and REACT cost per tick.
+**C. Cron choice and cost.** One cron subscription per Rulebook, billed every tick (§7). Phase 1 measured ≈ 100 lREACT/day for `Cron10` and ≈ 1 for `Cron1000` (§11).
+
+*Proposed default (updated after Phase 1):* the cron topic becomes a Rulebook constructor setting.
+- **Mainnet: `Cron1000`** (~18 min). That's within a 1-hour Guardian check interval, at about 1 REACT/day (≈ 7 REACT for the 7-day usage window, before any price check).
+- **Testnet demo Rulebooks: `Cron10`**, deployed shortly before a demo run and retired afterwards (owner `editRules` or an unsubscribe op), because they burn ≈ 4 lREACT an hour.
+- **Long-running testnet Rulebooks: `Cron100`** (≈ 10 lREACT/day).
+
+**Decisions recorded 2026-11-15:** the user approved **A** and **B** as proposed above.
 
 ---
 
 ## Status of CLAUDE.md "Facts to verify"
 
-| Fact | Status after Phase 0 | Source |
+| Fact | Status after Phase 1 | Source |
 | --- | --- | --- |
-| Lasna: 5318007, `https://lasna-rpc.rnk.dev/`, lasna.reactscan.net, faucet 1 ETH → 100 lREACT | ✔ confirmed in docs (faucet also has a 5 ETH cap) | §9 |
-| Testnet callback proxies (Base Sepolia, Unichain Sepolia) | ✔ confirmed in docs; recheck before the Phase 1 deploy | §9 |
+| Lasna: 5318007, `https://lasna-rpc.rnk.dev/`, lasna.reactscan.net, faucet 1 ETH → 100 lREACT | ✔ confirmed live; the faucet paid 105 lREACT per ETH on 2026-11-15 (5 ETH cap per docs) | §9, §11 |
+| Testnet callback proxies (Base Sepolia, Unichain Sepolia) | ✔ Base Sepolia proxy `0x476F…3585` delivered callbacks live (bytecode present, rechecked 2026-11-15). Unichain Sepolia: docs only; Phase 3 uses it | §9, §11 |
 | Base mainnet proxy `0xCc78…a068` | ✔ confirmed in docs; recheck in Phase 4 | §9 |
 | Mainnet chains Reactive 1597, Base 8453, Arbitrum 42161 supported | ✔ all listed as origin and destination | §9 |
-| Callback ReactVM id = deployer | ✘ **not in Omni**: the injected address is the reactive contract itself. Phase 1 confirms live; see Design impact A | §6 |
-| Cron topics, intervals, cost | ◐ topics confirmed and tested; intervals conflict between sources; cost per tick unmeasured. Phase 1 measures | §7 |
-| Contract wildcard (`address(0)`) with user as indexed topic | ◐ documented as allowed; Phase 1 confirms live | §3 |
-| Direct calls to a reactive contract (`checkNow`, `editRules`) | ◐ no VM split in Omni, so they're ordinary txs sharing state with `react()`; Phase 3 confirms live | §2 |
+| Callback ReactVM id = deployer | ✘ **confirmed false live**: the injected address is the reactive contract itself. Handled by approved Design impact A | §6, §11 |
+| Cron topics, intervals, cost | ✔ `Cron10` = 10.6 s on Lasna; 0.0122 lREACT per minimal tick (≈ 100 lREACT/day for `Cron10`) | §7, §11 |
+| Contract wildcard (`address(0)`) with user as indexed topic | ✔ confirmed live for `Transfer` and `Approval` | §3, §11 |
+| Direct calls to a reactive contract (`checkNow`, `editRules`) | ✔ ordinary txs paid by the caller, sharing state with `react()` (live: `stopCron` in Phase 1; `checkNow` unit-tested) | §2, §13 |
 | REACT funding and `coverDebt` | ✔ mechanics documented; REACT per day measured in Phases 3–4 | §8 |
-| OZ `VestingWallet.release(token)` permissionless, no vesting event | ◐ `release(address)` is `public` (`openzeppelin-contracts/contracts/finance/VestingWallet.sol:126`) and emits `ERC20Released` only when released; no event as tokens vest. Phase 3 tests it | — |
+| OZ `VestingWallet.release(token)` permissionless, no vesting event | ✔ `release(address)` is `public` (`openzeppelin-contracts/contracts/finance/VestingWallet.sol:126`); called live by the executor in Phase 3 | §13 |
 
 **Also checked:** OpenZeppelin v5.7 `ERC20.transferFrom` spends allowance with `emitEvent = false`, so it emits **no** `Approval` (`openzeppelin-contracts/contracts/token/ERC20/ERC20.sol:259`). Executor pulls therefore don't look like user activity on our mocks. Real Base USDC still needs a Phase 2 fork test.

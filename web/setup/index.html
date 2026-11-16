@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steward · set up your rules</title>
+<style>
+  :root { --ink:#F5F5F7; --text:rgba(255,255,255,.87); --muted:rgba(245,245,247,.62); --line:rgba(245,245,247,.20);
+          --royal:#2756FC; --maya:#62D0FF; --ok:#1A9F44; --warn:#F5A524; --bad:#FF5A6A; --mono:"Roboto Mono",ui-monospace,Menlo,monospace; }
+  * { box-sizing:border-box }
+  body { margin:0; background:#000; color:var(--text); font:16px/24px Inter,system-ui,sans-serif }
+  main { max-width:640px; margin:0 auto; padding:24px 16px 64px; display:flex; flex-direction:column; gap:24px }
+  h1 { margin:0; font-weight:400; font-size:28px; line-height:36px; color:var(--ink) }
+  .label { font:14px/20px var(--mono); text-transform:uppercase; color:var(--muted) }
+  .panel { border:1px solid var(--line); border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:12px; background:#101010 }
+  .mono { font:14px/20px var(--mono); word-break:break-all }
+  .row { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap }
+  button { min-height:44px; padding:10px 16px; border-radius:6px; border:1px solid var(--line); background:transparent;
+           color:var(--text); font:14px/20px var(--mono); text-transform:uppercase; cursor:pointer }
+  button.primary { background:var(--royal); border-color:var(--royal); color:#fff }
+  button:disabled { opacity:.45; cursor:default }
+  button:focus-visible { outline:2px solid var(--maya); outline-offset:2px }
+  .ok { color:var(--ok) } .warn { color:var(--warn) } .bad { color:var(--bad) } .info { color:var(--maya) }
+  a { color:var(--maya) }
+  ol { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px }
+</style>
+</head>
+<body>
+<main>
+  <div class="label" id="net">// Loading setup</div>
+  <h1>Set up your rules</h1>
+  <p style="margin:0;color:var(--muted)">Three signatures from your wallet: your Rulebook on Reactive, then a USDC permit and your vault on Base. Nothing moves until you approve each one in MetaMask.</p>
+
+  <section class="panel" aria-labelledby="review">
+    <div class="label" id="review">// Review</div>
+    <ol id="rules"></ol>
+    <div class="mono" style="color:var(--muted)" id="details"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="steps">
+    <div class="label" id="steps">// Sign</div>
+    <div class="row"><span>1. Connect wallet</span><span class="mono" id="s0">(~) WAITING</span></div>
+    <div class="row"><span>2. Deploy your Rulebook on <span id="rname">Reactive</span></span><span class="mono" id="s1">(~) WAITING</span></div>
+    <div class="row"><span>3. Sign the USDC permit on <span id="bname">Base</span></span><span class="mono" id="s2">(~) WAITING</span></div>
+    <div class="row"><span>4. Create your vault on <span id="bname2">Base</span></span><span class="mono" id="s3">(~) WAITING</span></div>
+    <div class="row" style="justify-content:flex-start">
+      <button class="primary" id="go" disabled>[ Connect wallet ]</button>
+      <button id="reset" type="button">[ Start over ]</button>
+    </div>
+    <div class="mono" id="msg" role="status" aria-live="polite"></div>
+  </section>
+</main>
+<script>
+"use strict";
+let S, me, rulebook, permitSig, eth, run = 0;
+const $ = (id) => document.getElementById(id);
+// MetaMask mobile can inject window.ethereum after the page script runs, so wait for it (up to 3 s).
+function provider() {
+  if (window.ethereum) return Promise.resolve(window.ethereum);
+  return new Promise((done) => {
+    const finish = () => done(window.ethereum);
+    window.addEventListener("ethereum#initialized", finish, { once: true });
+    setTimeout(finish, 3000);
+  });
+}
+const hex = (n) => "0x" + BigInt(n).toString(16);
+const word = (h) => h.replace(/^0x/, "").toLowerCase().padStart(64, "0");
+const short = (a) => a.slice(0, 8) + "..." + a.slice(-6);
+const fmt6 = (v) => (Number(v) / 1e6).toFixed(2);
+const key = () => "steward-setup-" + S.network + "-" + S.user.toLowerCase();
+
+function status(i, text, cls) { const el = $("s" + i); el.textContent = text; el.className = "mono " + (cls || ""); }
+function say(text, cls) { $("msg").textContent = text; $("msg").className = "mono " + (cls || ""); }
+function link(i, explorer, tx) { const el = $("s" + i); el.innerHTML = '(v) SUCCESS <a href="' + explorer + "/tx/" + tx + '" target="_blank" rel="noopener">' + short(tx) + " ↗</a>"; el.className = "mono ok"; }
+
+async function load() {
+  S = await (await fetch("setup.json", { cache: "no-store" })).json();
+  $("net").textContent = "// " + S.network.toUpperCase() + " · " + S.baseName + " + " + S.reactiveName;
+  $("rname").textContent = S.reactiveName; $("bname").textContent = S.baseName; $("bname2").textContent = S.baseName;
+  const senders = (S.incomeSenders || []).map(short).join(", ") || "nobody yet (add senders later)";
+  const react = (Number(BigInt(S.rulebookValueWei)) / 1e18).toString();
+  $("rules").innerHTML =
+    "<li><b>Pay yourself first.</b> Save " + Number(S.splitBps) / 100 + "% of USDC payments from " + senders +
+    ", at most " + fmt6(S.periodCap) + " USDC every " + S.periodDays + " days.</li>" +
+    "<li><b>Guardian.</b> If you are silent for " + S.silenceDays + " days on chains " + S.watchedChains.join(" and ") +
+    ", warn you, wait " + S.graceDays + " days, then send your savings to " + short(S.beneficiary) + ".</li>" +
+    "<li><b>Budget.</b> The executor may pull at most " + fmt6(S.permitValue) + " USDC in total. Your Rulebook gets " + react + " " + S.reactiveSymbol + " to run.</li>";
+  $("details").textContent = "Wallet " + S.user + " · vault will be " + S.vault + " · executor " + S.executor;
+  const saved = JSON.parse(localStorage.getItem(key()) || "{}");
+  if (saved.rulebook) { rulebook = saved.rulebook; link(1, S.reactiveExplorer, saved.rulebookTx); }
+  eth = await provider();
+  $("go").disabled = false; // the button checks for the wallet again on every press
+  if (!eth) say("(x) FAILED · Open this page inside MetaMask's browser (menu > Browser).", "bad");
+}
+
+async function chain(id, name, rpc, symbol, explorer) {
+  const current = await eth.request({ method: "eth_chainId" });
+  if (BigInt(current) === BigInt(id)) return;
+  try { await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex(id) }] }); }
+  catch (e) {
+    if (e && e.code === 4001) throw e; // you said no
+    // Unknown network (4902, or -32603 on some MetaMask mobile versions): add it, which also switches to it.
+    await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: hex(id), chainName: name, rpcUrls: [rpc],
+      nativeCurrency: { name: symbol, symbol: symbol, decimals: 18 }, blockExplorerUrls: [explorer] }] });
+  }
+  const now = await eth.request({ method: "eth_chainId" });
+  if (BigInt(now) !== BigInt(id)) throw new Error("MetaMask is still on another network. Switch to " + name + " and press the button again.");
+}
+
+async function receipt(tx) {
+  for (let i = 0; i < 180; i++) {
+    const r = await eth.request({ method: "eth_getTransactionReceipt", params: [tx] });
+    if (r) { if (r.status !== "0x1") throw new Error("transaction reverted"); return r; }
+    await new Promise((ok) => setTimeout(ok, 2000));
+  }
+  throw new Error("no receipt after 6 minutes");
+}
+
+async function connect() {
+  const accounts = await eth.request({ method: "eth_requestAccounts" });
+  me = accounts[0];
+  if (me.toLowerCase() !== S.user.toLowerCase()) throw new Error("Switch MetaMask to " + S.user + " (this page was prepared for that wallet).");
+  status(0, "(v) " + short(me), "ok");
+}
+
+async function deployRulebook() {
+  if (rulebook) return;
+  status(1, "(~) PENDING", "info"); say("Switching to " + S.reactiveName + ". Approve in MetaMask.");
+  await chain(S.reactiveChainId, S.reactiveName, S.reactiveRpc, S.reactiveSymbol, S.reactiveExplorer);
+  say("Approve the Rulebook deploy in MetaMask (it sends " + Number(BigInt(S.rulebookValueWei)) / 1e18 + " " + S.reactiveSymbol + " with it).");
+  const tx = await eth.request({ method: "eth_sendTransaction", params: [{ from: me, data: S.rulebookInitcode, value: hex(S.rulebookValueWei) }] });
+  status(1, "(~) PENDING " + short(tx), "info"); say("Waiting for the deploy to confirm...");
+  const r = await receipt(tx);
+  rulebook = r.contractAddress;
+  localStorage.setItem(key(), JSON.stringify({ rulebook, rulebookTx: tx }));
+  link(1, S.reactiveExplorer, tx);
+}
+
+async function signPermit() {
+  status(2, "(~) PENDING", "info"); say("Switching to " + S.baseName + ". Approve in MetaMask.");
+  await chain(S.baseChainId, S.baseName, S.baseRpc, "ETH", S.baseExplorer);
+  const nonce = await eth.request({ method: "eth_call", params: [{ to: S.usdc, data: "0x7ecebe00" + word(me) }, "latest"] });
+  const deadline = Math.floor(Date.now() / 1000) + 3600;
+  const typed = {
+    types: {
+      EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
+      Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }]
+    },
+    primaryType: "Permit",
+    domain: { name: S.usdcName, version: S.usdcVersion, chainId: Number(S.baseChainId), verifyingContract: S.usdc },
+    message: { owner: me, spender: S.executor, value: String(S.permitValue), nonce: BigInt(nonce).toString(), deadline: String(deadline) }
+  };
+  say("Sign the permit in MetaMask: it lets Steward's executor move at most " + fmt6(S.permitValue) + " USDC, only into your vault.");
+  const sig = await eth.request({ method: "eth_signTypedData_v4", params: [me, JSON.stringify(typed)] });
+  const s = sig.replace(/^0x/, "");
+  let v = parseInt(s.slice(128, 130), 16); if (v < 27) v += 27;
+  permitSig = { value: S.permitValue, deadline, v, r: "0x" + s.slice(0, 64), s: "0x" + s.slice(64, 128) };
+  status(2, "(v) SIGNED", "ok");
+}
+
+async function createVault() {
+  status(3, "(~) PENDING", "info");
+  const data = S.createVaultSelector.slice(0, 10) + word(S.usdc) + word(rulebook) + word(S.beneficiary) +
+    word(hex(permitSig.value)) + word(hex(permitSig.deadline)) + word(hex(permitSig.v)) + word(permitSig.r) + word(permitSig.s);
+  say("Approve the vault creation in MetaMask.");
+  const tx = await eth.request({ method: "eth_sendTransaction", params: [{ from: me, to: S.factory, data }] });
+  status(3, "(~) PENDING " + short(tx), "info"); say("Waiting for the vault to confirm...");
+  await receipt(tx);
+  link(3, S.baseExplorer, tx);
+  say("(v) Done. Your Rulebook " + short(rulebook) + " is watching, and your vault is " + short(S.vault) + ".", "ok");
+  $("go").textContent = "[ All set ]"; S.done = true;
+}
+
+$("go").addEventListener("click", async () => {
+  if (!S) return;
+  if (!eth) eth = await provider();
+  if (!eth) { say("(x) FAILED · No wallet found. Open this page inside MetaMask's browser (menu > Browser).", "bad"); return; }
+  const mine = ++run; // a later Start over makes this run stale, so it stops touching the page
+  $("go").disabled = true;
+  try {
+    if (!me) {
+      say("Approve the connection in MetaMask.");
+      await connect();
+      if (mine !== run) return;
+      $("go").textContent = "[ Sign setup ]"; say("Review your rules above, then press Sign setup.");
+      return;
+    }
+    await deployRulebook();
+    await signPermit();
+    await createVault();
+  } catch (e) {
+    if (mine !== run) return;
+    const code = e && e.code !== undefined ? " (code " + e.code + ")" : "";
+    const why = e && e.code === 4001 ? "You declined in MetaMask." :
+      e && e.code === -32002 ? "MetaMask already has a request open. Open the MetaMask app, approve or reject it, then come back." :
+      (e && e.message ? e.message : String(e));
+    say("(x) FAILED · " + why + code + " Press the button to try again; finished steps are kept.", "bad");
+  } finally {
+    if (mine === run) $("go").disabled = !!S.done;
+  }
+});
+
+$("reset").addEventListener("click", () => {
+  run++; // abandon any step still waiting on MetaMask
+  if (S) { localStorage.removeItem(key()); S.done = false; }
+  rulebook = undefined; permitSig = undefined; me = undefined;
+  for (let i = 0; i < 4; i++) status(i, "(~) WAITING", "");
+  $("go").textContent = "[ Connect wallet ]"; $("go").disabled = !S;
+  say("Started over. Steps already confirmed on-chain stay on-chain; a Rulebook deployed earlier is not reused.");
+});
+load().catch((e) => say("(x) FAILED · could not load setup.json: " + e.message, "bad"));
+</script>
+</body>
+</html>

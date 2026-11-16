@@ -8,6 +8,7 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/*/31337/
 contracts/broadcast/**/dry-run/
+contracts/broadcast/**/*.lock
 contracts/lcov.info
 contracts/coverage/
 
@@ -24,3 +25,6 @@ web/test-results/
 Thumbs.db
 .vscode/
 .idea/
+
+# Generated per wallet by script/ops/SetupPage.s.sol
+web/setup/setup.json

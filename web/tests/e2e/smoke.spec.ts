@@ -1,0 +1,83 @@
+import { expect, test } from "@playwright/test";
+
+// The page in every Guardian state and with no vault, using the labelled preview data in place of
+// chain reads (lib/preview.ts). Screenshots go to test-results/ for review.
+
+test("without a wallet, the page invites a connection", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "[ Connect wallet ]" })).toBeVisible();
+  await expect(page.getByText("Connect your wallet to see your vault")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Built on Reactive/ })).toBeVisible();
+});
+
+test("Active: vault balance, green state, countdown to warning and I'm alive", async ({ page }, info) => {
+  await page.goto("/?preview=active");
+  await expect(page.getByRole("alert").getByText("[!] PREVIEW")).toBeVisible();
+  await expect(page.getByText("145.50", { exact: true })).toBeVisible();
+  await expect(page.getByText("(v) ACTIVE")).toBeVisible();
+  await expect(page.getByText(/^87d \d\dh until warning$/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ I'm alive ]" })).toBeVisible();
+  for (const title of ["Pay yourself first", "Claim and secure", "Guardian"]) {
+    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: "[ Pause all ]" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ Withdraw ]" })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("active.png"), fullPage: true });
+});
+
+test("Warning: amber state and a countdown to release", async ({ page }, info) => {
+  await page.goto("/?preview=warning");
+  await expect(page.getByText("[!] WARNING")).toBeVisible();
+  await expect(page.getByText(/until release$/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("warning.png"), fullPage: true });
+});
+
+test("Released: final state, no I'm alive", async ({ page }, info) => {
+  await page.goto("/?preview=released");
+  await expect(page.getByText("(v) RELEASED")).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ I'm alive ]" })).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("released.png"), fullPage: true });
+});
+
+test("Paused: rules show PAUSED and Unpause replaces Pause all", async ({ page }) => {
+  await page.goto("/?preview=paused");
+  await expect(page.getByText("[!] PAUSED")).toBeVisible();
+  // Pay yourself first and Guardian are on, so they read PAUSED; Claim and secure is off in this sample.
+  await expect(page.getByText("[ PAUSED ]")).toHaveCount(2);
+  await expect(page.getByText("[ OFF ]")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "[ Unpause ]" })).toBeVisible();
+});
+
+test("Low REACT: amber banner", async ({ page }) => {
+  await page.goto("/?preview=lowreact");
+  await expect(page.getByText("[!] LOW REACT")).toBeVisible();
+});
+
+test("No vault: empty state offers setup", async ({ page }, info) => {
+  await page.goto("/?preview=novault");
+  await expect(page.getByText("This wallet has no Steward vault")).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ Set up your rules ]" })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("novault.png"), fullPage: true });
+});
+
+test("Setup: rule fields, blur-first validation and a plain-English review", async ({ page }, info) => {
+  await page.goto("/?preview=novault");
+  await page.getByRole("button", { name: "[ Set up your rules ]" }).click();
+  await expect(page.getByRole("heading", { name: "// Set up your rules" })).toBeVisible();
+
+  const senders = page.getByLabel("Addresses that pay you");
+  await senders.fill("0x123");
+  await senders.blur();
+  await expect(page.getByText("Use full 0x addresses, separated by commas or new lines.")).toBeVisible();
+  await senders.fill("0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502");
+  await expect(page.getByText("Use full 0x addresses")).toHaveCount(0);
+
+  await page.getByLabel("Beneficiary").fill("0x810fCBF8A695Ffa0e4480207c667995139F33276");
+  const review = page.getByRole("region", { name: "// Review" });
+  await expect(
+    review.getByText(/^Pay yourself first: save 20% of every USDC payment from 0x1501D3\.\.\.9Cfb0502/),
+  ).toBeVisible();
+  await expect(review.getByText(/^Guardian: if you are silent for 90 days/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ Sign setup ]" })).toBeDisabled();
+  await page.screenshot({ path: info.outputPath("setup.png"), fullPage: true });
+});
