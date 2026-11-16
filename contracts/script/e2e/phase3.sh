@@ -5,7 +5,8 @@
 #   clear   silence -> GuardianWarning -> the user acts on Unichain -> GuardianCleared   (G-2, G-3, G-4)
 #   release silence -> GuardianWarning -> grace -> release -> beneficiary receives the vault (G-2, V-2)
 # Prints origin, Reactive and callback tx hashes for each. Run from contracts/:  make e2e-phase3
-# Prereq: make deploy-base-sepolia (Phase 3 contracts). Env: BENEFICIARY (required).
+# Prereq: make deploy-base-sepolia (Phase 3 contracts) and no vault yet for this wallet on that factory.
+# Env: BENEFICIARY (required). Keep the session open: the waits take ~12 minutes.
 set -euo pipefail
 . script/e2e/lib.sh
 
@@ -24,21 +25,22 @@ forge script script/e2e/Phase3.s.sol --tc Phase3Vesting --rpc-url "$BASE" --broa
 VEST=$(json deployments/phase3-base-sepolia.json .vestToken)
 VESTING=$(json deployments/phase3-base-sepolia.json .vestingWallet)
 echo "VEST $VEST  vesting wallet $VESTING"
+# The one-time approval goes first, so no claim can ever run before it (and it predates the Rulebook's clock).
+forge script script/e2e/Phase3.s.sol --tc Phase3ApproveVesting --rpc-url "$BASE" --broadcast --slow -q
 
 step "Rulebook on Lasna (Cron10, claim every ${CLAIM_INTERVAL:-90}s, silence ${SILENCE}s, grace ${GRACE}s, check 30s)"
 VESTING="$VESTING" VESTING_TOKEN="$VEST" CLAIM_INTERVAL="${CLAIM_INTERVAL:-90}" \
   SILENCE_PERIOD="$SILENCE" GRACE_PERIOD="$GRACE" GUARDIAN_CHECK_INTERVAL=30 \
   RULEBOOK_CRON=0x04463f7c1651e6b9774d7f85c85bb94654e3c46ca79b0c16fb16d4183307b687 \
-  RULEBOOK_FUNDING_WEI="${RULEBOOK_FUNDING_WEI:-2500000000000000000}" \
+  RULEBOOK_FUNDING_WEI="${RULEBOOK_FUNDING_WEI:-1500000000000000000}" \
   forge script script/DeployRulebook.s.sol --rpc-url "$LASNA_RPC" --broadcast --slow -q
 RULEBOOK=$(json deployments/rulebook-lasna.json .rulebook)
 USER=$(json deployments/rulebook-lasna.json .user)
 LASNA_FROM=$(json deployments/rulebook-lasna.json .deployBlock)
 echo "Rulebook $RULEBOOK (user $USER)"
 
-step "Vault on Base Sepolia (beneficiary $BENEFICIARY) and the one-time VEST approval"
+step "Vault on Base Sepolia (beneficiary $BENEFICIARY)"
 BENEFICIARY="$BENEFICIARY" forge script script/ops/CreateVault.s.sol --rpc-url "$BASE" --broadcast --slow -q
-forge script script/e2e/Phase3.s.sol --tc Phase3ApproveVesting --rpc-url "$BASE" --broadcast --slow -q
 VAULT=$(cast call "$FACTORY" "vaultOf(address)(address)" "$USER" --rpc-url "$BASE")
 BASE_FROM=$(cast block-number --rpc-url "$BASE")
 echo "Vault $VAULT"
