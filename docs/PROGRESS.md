@@ -139,3 +139,56 @@ Next
 - Phase 3 needs more lREACT. The PC wallet has 2.0 lREACT, and a Guardian demo Rulebook on `Cron10` burns ≈ 4 lREACT/hour. Please send about **0.05 Sepolia ETH** (≈ 5 lREACT) to the PC wallet `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502`, or claim it from a faucet.
 - Unichain Sepolia ETH for the second watched chain (G-4): a small amount (≈ 0.005 ETH) on the PC wallet.
 - Tell me which address should be the Guardian test beneficiary.
+
+## Phase 3 report: Rule 2 + Guardian
+
+Gate: PASSED. All tests are green and the invariants hold at 256 runs × depth 50. A claim loop, a Guardian clear and a Guardian release are each recorded on testnet with tx hashes (run B). `GuardianWarning` and `GuardianCleared` are emitted on Lasna, visible on lasna.reactscan.net.
+
+Built
+- `SavingsVault`: cold wallet behind the same 24 h delay (`proposeColdWallet` / `applyColdWallet`), `forwardToColdWallet`, `release(tokens)` that sends every tracked balance to the beneficiary (both executor-only); tokens tracked on deposit and release
+- `OrdersExecutor`: `claim` (requires the vesting wallet's owner to be the user, reads `releasable`, no-op on zero, `release`, pull into the vault, forward to the cold wallet if set) and `release` (empties the vault to the beneficiary); both go through the same proxy / Rulebook / nonce / pause checks
+- `Rulebook`: Rule 2 schedule; Guardian across watched chains (`Transfer` from the user except into the vault, `Approval`, `Alive`, owner `Deposited`/`Withdrawn`, `Paused`/`Unpaused`); Active → Warning → Released by timestamps with a check interval; any activity clears a Warning; no callbacks while paused (a due release waits); unsubscribes everything on release; idle cron ticks exit after one comparison (`nextCronWork`); public `checkNow`
+- `src/interfaces/IVestingWallet.sol`, `src/mocks/MockVestingWallet.sol` (OpenZeppelin's code unchanged), `MockToken.sol`
+- Ops scripts for every user action (U-5) in `script/ops/UserOps.s.sol` via `make alive | pause | unpause | withdraw | propose-/apply-beneficiary | propose-/apply-cold-wallet | edit-rules | top-up-react | check-now | status`
+- `script/e2e/Phase3.s.sol` + `phase3.sh` (`make e2e-phase3`): claim, clear from Unichain, release, on one Rulebook; `DeployRulebook` takes every Rule 2 and Guardian setting from env (`.env.example`)
+
+Tests
+- forge test: 119 passed, 1 skipped (fork test without `BASE_RPC`), 0 failed
+- Coverage of `src/`: 99.8% lines (412/413), 93.2% branches
+- Invariants: 256 runs × 50 depth (12,800 calls, 0 reverts), all seven holding: funds only to allowed places; release needs Warning + full grace; splits within cap; no forged or replayed callback succeeds; owner can always withdraw; only signed actions move the clock; beneficiary changes wait 24 h
+- Required IDs: `test_C1_claimFiresOnInterval`, `test_C2_zeroReleasableIsNoop`, `test_C2_claimMovesVestedToVault`, `test_V4_coldWalletGoesThroughVault`, `test_G1_eachActivitySourceUpdatesClock`, `test_G1_transferToVaultIsNotActivity`, `test_G2_warningAfterSilence`, `test_G2_throttledByCheckInterval`, `test_G3_activityClearsWarning`, `test_G2_releaseOnlyAfterGrace`, `test_G5_checkNowAdvancesState`, `test_U3_noCallbacksWhilePaused`, plus G-4 subscriptions and full-system `StewardFlow` tests
+
+On-chain evidence (run B, 2026-11-16)
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 2 claim | Lasna cron → Base Sepolia | Cron10 tick | `0x4a62e41b6ec1aeeff33aaf9fa633127397bea829411f9ac3a711edd13ae65129` | `0xabf27e8ec64fd6ba9cedcf05a4a266196f7ad7428d632da1eb0d8ba7a6783ce4` |
+| Guardian → Warning | Lasna cron | Cron10 tick | `0xb2b49600f03332ccb5bbeb508ac508f0492ec7e6420f61232a955f3d00819c15` | none |
+| Guardian → Active (Unichain activity) | Unichain Sepolia → Lasna | `0xf73cdb6848b4ec58c7d1ac358c39d6b7a3f1e4a351455969e3a0a6dc0d2d076f` | `0xe86ee39820192c3b5fdba3bc578d4750f43b7c53ed27b019115dbb317c1f9642` | none |
+| Guardian → Warning (again) | Lasna cron | Cron10 tick | `0x3dd434dcad433e64fda16719193d5330ed830dc2de4ac448212a94cfc497a9f1` | none |
+| Guardian → Released | Lasna cron → Base Sepolia | Cron10 tick | `0xdf94be3488bbe60d96c4c8e5f94a2861424328b3bc27fc53afa2b2dda6b746da` | `0x0e9f2cc81682c7334946b566767b109f02f463c873763be4b4f69b3ab31c99a2` |
+
+The beneficiary (your phone wallet) received all 1,000 VEST; the vault ended empty. Run A, an unattended cycle after the session dropped, is also in `TX_HASHES.md`.
+
+Decisions and findings (NOTES §13)
+- Unichain Sepolia works as the second watched chain.
+- Unsubscribe on release stops all REACT spending.
+- A full demo run costs about 0.81 lREACT.
+- Claims need the one-time approval first. The script now approves before deploying the Rulebook; run A showed what happens otherwise.
+- A due release **waits while the user is paused**: the executor would reject it, and pausing is the user's explicit choice. Unpausing is activity, so it returns the Guardian to Active.
+- The release token list is `[USDC, vesting token]` from the Rulebook, plus every token the vault has seen in a deposit.
+- The executor checks that the vesting wallet's `owner()` is the user before releasing.
+- The ops scripts are one file, `UserOps.s.sol` (one contract per action, run with `--tc`), rather than nine files.
+- Both CREATE2 vaults on the Phase 3 factory are spent (runs A and B); the next testnet demo redeploys `DeployBase` (≈ 0.0001 ETH).
+
+Risks and open questions
+- **REACT left in a released Rulebook is stranded** (1.99 + 0.69 lREACT now). Proposed default: add an owner-only `withdrawReact(to, amount)` to the Rulebook in Phase 6 hardening. On mainnet that means a few REACT, not user savings.
+- **The release callback has one shot.** If it fails on Base (for example, the executor is out of ETH), the Rulebook is already Released and unsubscribed. The owner can still withdraw, but the beneficiary gets nothing. Proposed default: keep the executor's ETH float monitored (dashboard + Status) and document it in SECURITY.md. A beneficiary-callable retry is possible later.
+- Paused forever means no release, by design. This goes in the README's safety section.
+- The full compile now takes about 3.5 minutes locally (larger Rulebook). CI should still be fine.
+
+Next
+- Phase 4 is the mainnet vault. It needs your explicit **"deploy to mainnet"**, plus:
+  - a funded **mainnet** wallet: Base ETH (≈ 0.002 ETH for deploys and the executor float), a small amount of real USDC, and REACT on Reactive mainnet (≈ 10 REACT covers deploy + a week of `Cron1000`);
+  - the per-period cap and REACT amount you approve;
+  - your beneficiary, and income sender(s) for Rule 1.
+- The PC test wallet is testnet-only. Mainnet should use a wallet you control; we can discuss how to sign from your phone.

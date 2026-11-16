@@ -186,6 +186,19 @@ A Rulebook tick that exits after one timestamp comparison will cost about the sa
 - The cron topic is a Rulebook constructor setting (approved default C): `Cron100` on Lasna, `Cron1000` on mainnet.
 - **The permit is a lifetime budget**, not per period: the executor's allowance shrinks with every split. When it runs out, splits fail on Base (and are still charged) until the user signs a new permit or approval. Phase 5's dashboard should show the remaining allowance.
 
+## 13. Phase 3 live findings (2026-11-16)
+
+| Item | Finding | Evidence |
+| --- | --- | --- |
+| Unichain Sepolia as an origin | Works: a user transfer there reached the Lasna Rulebook and cleared a Warning (contract wildcard + `from = user`). Listed as origin and destination in the Omni testnet table (`docs` `origins-destinations-testnet-omni.js`). | Run B, `0xf73c…076f` → `0xe86e…9642` |
+| Unsubscribe on release | Stops all spending: the released Rulebook's lREACT balance stayed flat afterwards (runs A and B). Unsubscribing from inside `react()` works. | `Rulebook.state() == 2`, balance unchanged |
+| Demo cost | A full demo run (Cron10, ~10 min, 4+ claims, 2 warnings, 1 clear, 1 release) cost 0.81 lREACT. | Run B |
+| Claims vs the one-time approval | A claim before the user's VEST approval fails on Base and is still charged. The release step in the same callback is rolled back with it, so nothing is left half-done. The setup now approves **before** deploying the Rulebook. | Run A |
+| `VestingWallet.release(token)` | Public; the executor calls it and the tokens go to the vesting owner (the user), then into the vault. No event as tokens vest, so cron is required (C-3). | Run B claim |
+| Leftover REACT after release | A Released Rulebook keeps its remaining REACT and has no way to send it back: 1.99 lREACT (run A) and 0.69 (run B) are stranded. See open question in PROGRESS. | `cast balance` |
+| Direct owner call to a reactive contract | Works and is paid by the caller like any tx (Phase 1 `stopCron`, Phase 3 deploy-time calls). `checkNow` is the same kind of call. | `0x6777…2a79` |
+| Timestamps | Activity is timed with Lasna's `block.timestamp`: the Run A warning fired 186 s after the last activity (silence 180 s + check/cron granularity). | Run A |
+
 ---
 
 ## Design impact (A and B approved 2026-11-15; C approved with the Phase 1 cron default)
@@ -233,8 +246,8 @@ Callbacks are billed to the recipient (§8), and a rejected callback is still ch
 | Callback ReactVM id = deployer | ✘ **confirmed false live**: the injected address is the reactive contract itself. Handled by approved Design impact A | §6, §11 |
 | Cron topics, intervals, cost | ✔ `Cron10` = 10.6 s on Lasna; 0.0122 lREACT per minimal tick (≈ 100 lREACT/day for `Cron10`) | §7, §11 |
 | Contract wildcard (`address(0)`) with user as indexed topic | ✔ confirmed live for `Transfer` and `Approval` | §3, §11 |
-| Direct calls to a reactive contract (`checkNow`, `editRules`) | ◐ no VM split in Omni, so they're ordinary txs sharing state with `react()`; Phase 3 confirms live | §2 |
+| Direct calls to a reactive contract (`checkNow`, `editRules`) | ✔ ordinary txs paid by the caller, sharing state with `react()` (live: `stopCron` in Phase 1; `checkNow` unit-tested) | §2, §13 |
 | REACT funding and `coverDebt` | ✔ mechanics documented; REACT per day measured in Phases 3–4 | §8 |
-| OZ `VestingWallet.release(token)` permissionless, no vesting event | ◐ `release(address)` is `public` (`openzeppelin-contracts/contracts/finance/VestingWallet.sol:126`) and emits `ERC20Released` only when released; no event as tokens vest. Phase 3 tests it | — |
+| OZ `VestingWallet.release(token)` permissionless, no vesting event | ✔ `release(address)` is `public` (`openzeppelin-contracts/contracts/finance/VestingWallet.sol:126`); called live by the executor in Phase 3 | §13 |
 
 **Also checked:** OpenZeppelin v5.7 `ERC20.transferFrom` spends allowance with `emitEvent = false`, so it emits **no** `Approval` (`openzeppelin-contracts/contracts/token/ERC20/ERC20.sol:259`). Executor pulls therefore don't look like user activity on our mocks. Real Base USDC still needs a Phase 2 fork test.

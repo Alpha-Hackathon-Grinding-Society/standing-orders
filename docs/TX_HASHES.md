@@ -4,6 +4,49 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
+## Phase 3: Rule 2 and the Guardian (2026-11-16)
+
+User `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502`; beneficiary `0x810fCBF8A695Ffa0e4480207c667995139F33276`. Script: `make e2e-phase3`. Demo timers: `Cron10`, claim every 90 s, silence 180 s, grace 120 s, Guardian check every 30 s. Watched chains: Base Sepolia and Unichain Sepolia.
+
+### Run B: claim, clear, release on one Rulebook (08:16–08:28 UTC)
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 2 claim (cron) | Lasna cron → Base Sepolia | `Cron10` tick (Lasna) | `0x4a62e41b6ec1aeeff33aaf9fa633127397bea829411f9ac3a711edd13ae65129` (`ClaimRequested`) | `0xabf27e8ec64fd6ba9cedcf05a4a266196f7ad7428d632da1eb0d8ba7a6783ce4` (`ClaimExecuted`, 251.67 VEST into the vault) |
+| Guardian Active → Warning (silence) | Lasna cron | `Cron10` tick (Lasna) | `0xb2b49600f03332ccb5bbeb508ac508f0492ec7e6420f61232a955f3d00819c15` (`GuardianWarning`) | none |
+| Guardian Warning → Active (user acted on the **second chain**) | Unichain Sepolia → Lasna | `0xf73cdb6848b4ec58c7d1ac358c39d6b7a3f1e4a351455969e3a0a6dc0d2d076f` | `0xe86ee39820192c3b5fdba3bc578d4750f43b7c53ed27b019115dbb317c1f9642` (`GuardianCleared`) | none |
+| Guardian Active → Warning (silence again) | Lasna cron | `Cron10` tick (Lasna) | `0x3dd434dcad433e64fda16719193d5330ed830dc2de4ac448212a94cfc497a9f1` (`GuardianWarning`) | none |
+| Guardian Warning → Released (grace passed) | Lasna cron → Base Sepolia | `Cron10` tick (Lasna) | `0xdf94be3488bbe60d96c4c8e5f94a2861424328b3bc27fc53afa2b2dda6b746da` (`GuardianReleased`) | `0x0e9f2cc81682c7334946b566767b109f02f463c873763be4b4f69b3ab31c99a2` (`VaultReleased`) |
+
+Result: the cron claims moved the whole 1,000 VEST allocation into the vault as it vested. The release sent **all 1,000 VEST to the beneficiary**, and the vault ended empty. The Rulebook is `Released` and unsubscribed: its lREACT balance has stayed at 0.690397 since. The run spent 0.81 lREACT.
+
+| Contract | Network | Address | Deploy tx |
+| --- | --- | --- | --- |
+| VaultFactory (deploys OrdersExecutor) | Base Sepolia | `0x207feeecD8b2f6F479be2Ed591F309F06501F0cc` | `0x71c1d6fa0cba4f2d59ef562c28fce1e03c5a4a74c0f726958603fd69a073b2d2` |
+| OrdersExecutor | Base Sepolia | `0x12B9D62B13e626163114588DCBa51C6a7B88CCEC` | same tx; funded in `0x60ab915271a1e2d87ff22e3293d9ca4dc54bd7c55df973651b0525839df838cf` |
+| Heartbeat | Base Sepolia | `0xe6847bA8f223c74f64f8C317dB5a40A848740EA8` | `0x62b3eaa0f8e480fc750942eed386defd20cff99202e49f5830d3d6f6f7efd0c5` |
+| MockUSDC | Base Sepolia | `0x12E627587Ef1d653014AE6ABf9759DB2Ee5C1F2a` | `0x5e3a12c0d5b5b9775793da3ac633bad88ba95cfe37791a30e9c3e86942d3691f` |
+| VEST token / MockVestingWallet (OpenZeppelin code, 600 s) | Base Sepolia | `0x9fE6f72119507f969b7094A3f4e8EB5c58147650` / `0x1676537eB66d4A29925F37B30C6476e13Dc1DdeB` | see `broadcast/Phase3.s.sol/84532/` |
+| One-time VEST approval for the executor | Base Sepolia | | `0x62ebe11b7bc764c48377a530a05ad5451b4f22d3c0736b46496f553d61be9634` |
+| Rulebook (all three rules) | Lasna | `0x6dd3321B7881B026b13120b605e82815eCe89544` | `0xdec5b10ffb17483e92c3dfb925a21b033f90e3a92009a5258b87beb45923a9d5` |
+| SavingsVault (permit + `createVault`) | Base Sepolia | `0x3f6Add291E6f02A9BD3d7345F6102Ddf9E7F1707` | `0x16266260efd886d217c7e6640a55d95b2a3c5c86103deff5c52c4c0dd30c3f09` |
+
+### Run A: an unattended Guardian cycle (2026-11-15, 22:55 UTC)
+
+The first attempt lost its terminal session right after setup, before the one-time VEST approval was sent. The Rulebook carried on alone:
+- Its four claims failed on Base (no approval).
+- It warned after 3 minutes of silence.
+- It released after the 2-minute grace, with the vault empty.
+- It unsubscribed, keeping 1.99 lREACT.
+
+Contracts are in `contracts/deployments/*.phase3a.json`.
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Last signed activity: the vault's USDC permit (`Approval` by the user) | Base Sepolia → Lasna | `CreateVault` tx | `0xa2cf6e758da34755f5f5d7c5b30e46f22a18489a362ee3fcf8c56107ccc15757` (`ActivityRecorded`) | none |
+| Guardian Active → Warning | Lasna cron | `Cron10` tick | `0x1e6173057fe7868a09e12e0122273f739d4d2d04e36ca15bfeb97213d506df7d` | none |
+| Guardian Warning → Released | Lasna cron → Base Sepolia | `Cron10` tick | `0x7f801e8e9c369f5f7b72739ce3d7e169578219295884a3f072c2f2bb6e6d5053` | `0xe0cf2dbf89101ca6f3da41595e077ddf842cfae4d32ca2417b91fed1254ad4b4` (`VaultReleased`, nonce 5) |
+
 ## Phase 2: Rule 1, pay yourself first (2026-11-15)
 
 User (deployer) `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502`. Script: `make e2e-rule1`. Two test employers each paid the user 100 test USDC. The Rulebook lists only the first, with a 20% split and a 100 USDC cap per 30 days.
