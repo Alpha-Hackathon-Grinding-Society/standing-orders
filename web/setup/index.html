@@ -52,9 +52,17 @@
 </main>
 <script>
 "use strict";
-let S, me, rulebook, permitSig;
+let S, me, rulebook, permitSig, eth, run = 0;
 const $ = (id) => document.getElementById(id);
-const eth = window.ethereum;
+// MetaMask mobile can inject window.ethereum after the page script runs, so wait for it (up to 3 s).
+function provider() {
+  if (window.ethereum) return Promise.resolve(window.ethereum);
+  return new Promise((done) => {
+    const finish = () => done(window.ethereum);
+    window.addEventListener("ethereum#initialized", finish, { once: true });
+    setTimeout(finish, 3000);
+  });
+}
 const hex = (n) => "0x" + BigInt(n).toString(16);
 const word = (h) => h.replace(/^0x/, "").toLowerCase().padStart(64, "0");
 const short = (a) => a.slice(0, 8) + "..." + a.slice(-6);
@@ -80,8 +88,9 @@ async function load() {
   $("details").textContent = "Wallet " + S.user + " · vault will be " + S.vault + " · executor " + S.executor;
   const saved = JSON.parse(localStorage.getItem(key()) || "{}");
   if (saved.rulebook) { rulebook = saved.rulebook; link(1, S.reactiveExplorer, saved.rulebookTx); }
-  if (!eth) { say("(x) FAILED · Open this page inside MetaMask's browser (menu > Browser).", "bad"); return; }
-  $("go").disabled = false;
+  eth = await provider();
+  $("go").disabled = false; // the button checks for the wallet again on every press
+  if (!eth) say("(x) FAILED · Open this page inside MetaMask's browser (menu > Browser).", "bad");
 }
 
 async function chain(id, name, rpc, symbol, explorer) {
@@ -159,29 +168,44 @@ async function createVault() {
   await receipt(tx);
   link(3, S.baseExplorer, tx);
   say("(v) Done. Your Rulebook " + short(rulebook) + " is watching, and your vault is " + short(S.vault) + ".", "ok");
-  $("go").textContent = "[ All set ]";
+  $("go").textContent = "[ All set ]"; S.done = true;
 }
 
 $("go").addEventListener("click", async () => {
+  if (!S) return;
+  if (!eth) eth = await provider();
+  if (!eth) { say("(x) FAILED · No wallet found. Open this page inside MetaMask's browser (menu > Browser).", "bad"); return; }
+  const mine = ++run; // a later Start over makes this run stale, so it stops touching the page
   $("go").disabled = true;
   try {
-    if (!me) { await connect(); $("go").textContent = "[ Sign setup ]"; $("go").disabled = false; say("Review your rules above, then press Sign setup."); return; }
+    if (!me) {
+      say("Approve the connection in MetaMask.");
+      await connect();
+      if (mine !== run) return;
+      $("go").textContent = "[ Sign setup ]"; say("Review your rules above, then press Sign setup.");
+      return;
+    }
     await deployRulebook();
     await signPermit();
     await createVault();
   } catch (e) {
+    if (mine !== run) return;
     const code = e && e.code !== undefined ? " (code " + e.code + ")" : "";
-    const why = e && e.code === 4001 ? "You declined in MetaMask." : (e && e.message ? e.message : String(e));
+    const why = e && e.code === 4001 ? "You declined in MetaMask." :
+      e && e.code === -32002 ? "MetaMask already has a request open. Open the MetaMask app, approve or reject it, then come back." :
+      (e && e.message ? e.message : String(e));
     say("(x) FAILED · " + why + code + " Press the button to try again; finished steps are kept.", "bad");
-    $("go").disabled = false;
+  } finally {
+    if (mine === run) $("go").disabled = !!S.done;
   }
 });
 
 $("reset").addEventListener("click", () => {
-  if (S) localStorage.removeItem(key());
+  run++; // abandon any step still waiting on MetaMask
+  if (S) { localStorage.removeItem(key()); S.done = false; }
   rulebook = undefined; permitSig = undefined; me = undefined;
   for (let i = 0; i < 4; i++) status(i, "(~) WAITING", "");
-  $("go").textContent = "[ Connect wallet ]"; $("go").disabled = !eth;
+  $("go").textContent = "[ Connect wallet ]"; $("go").disabled = !S;
   say("Started over. Steps already confirmed on-chain stay on-chain; a Rulebook deployed earlier is not reused.");
 });
 load().catch((e) => say("(x) FAILED · could not load setup.json: " + e.message, "bad"));
