@@ -199,6 +199,19 @@ A Rulebook tick that exits after one timestamp comparison will cost about the sa
 | Direct owner call to a reactive contract | Works and is paid by the caller like any tx (Phase 1 `stopCron`, Phase 3 deploy-time calls). `checkNow` is the same kind of call. | `0x6777…2a79` |
 | Timestamps | Activity is timed with Lasna's `block.timestamp`: the Run A warning fired 186 s after the last activity (silence 180 s + check/cron granularity). | Run A |
 
+## 14. Phase 5 frontend findings (2026-11-16)
+
+| Item | Finding | Evidence |
+| --- | --- | --- |
+| Cron topic on the page | The page deploys Rulebooks on `Cron1000` (`0xe20b3129…e3f4`, about 18 min on Lasna) on both networks. A 1-hour Guardian check interval needs nothing finer, and it costs about 1–1.5 lREACT a day on Lasna (≈ 1.3 REACT a day on mainnet), against several times that for `Cron100`. | `web/lib/networks.ts`, `tests/unit/setup.test.ts` byte match |
+| Rulebook deploy fee | ≈ 3.8 M gas × 100 gwei = 0.38 lREACT on top of the funding sent with it. A wallet needs both, or MetaMask greys out its confirm button. | Phase 4 rehearsal top-up |
+| No Multicall3 on Reactive | Reads on Lasna and Reactive mainnet use JSON-RPC batching (`http(url, { batch: true })`); Base reads use `multicall`. | `web/lib/data.ts` |
+| Log ranges | The public Base Sepolia RPC caps `eth_getLogs` at 200 blocks; publicnode (`base-sepolia-rpc.publicnode.com`, `base-rpc.publicnode.com`) allows 50,000, so the savings history reads in 50k chunks from the deploy block. All these RPCs allow browser CORS. | `NETWORKS.*.logsRpc` |
+| Debt | The system contract's `debt(address)` is read for the REACT card; `OUT OF REACT` shows when there is debt (the Rulebook receives no events until topped up); `[!] LOW REACT` below 1 lREACT on testnet or 4 REACT on mainnet (about 1 and 3 days of running). | `web/components/Controls.tsx` |
+| MetaMask mobile relay | MetaMask mobile can send a transaction through its smart-account delegation (tx `from` is a relayer), but the contract still sees the wallet as `msg.sender`. Steward filters on event topics, so this is safe. | `TX_HASHES.md`, Phase 4 rehearsal |
+| MetaMask account permissions | Asking an account the site was not connected with to sign returns error 4100. The page explains it: disconnect and reconnect with that account ticked. | Phase 5 run |
+| Windows build | Build and serve from a path with an uppercase drive letter (`C:\…`). With `c:\…` Node resolves React twice and prerender fails with `useState of null`. CI on Linux is unaffected. | `Makefile` `web-*` targets |
+
 ---
 
 ## Design impact (A and B approved 2026-11-15; C approved with the Phase 1 cron default)

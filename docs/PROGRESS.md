@@ -192,3 +192,59 @@ Next
   - the per-period cap and REACT amount you approve;
   - your beneficiary, and income sender(s) for Rule 1.
 - The PC test wallet is testnet-only. Mainnet should use a wallet you control; we can discuss how to sign from your phone.
+
+## Phase 5 report: Frontend (one page)
+
+Gate: NOT PASSED, one criterion open. "The Guardian card shows the live mainnet vault" cannot pass until Phase 4 puts a vault on Base mainnet, which is parked until mainnet funds are available. The mainnet network is wired into the page and shows `Mainnet · soon` until `contracts/deployments/base.json` exists. Every other exit criterion passes.
+
+Built
+- `web/`: Next.js 16 (App Router, Turbopack) + TypeScript, Tailwind v4 with the `docs/DESIGN.md` theme as `@theme` tokens (`web/app/globals.css`), Inter and Roboto Mono via `next/font`, wagmi 2 + viem + RainbowKit (injected wallet; WalletConnect when a project id is set), Base Sepolia, Base, Lasna and Reactive mainnet
+- `web/scripts/sync-contracts.mjs` → `web/lib/generated/contracts.json`: addresses from `contracts/deployments/*.json` and the Rulebook creation bytecode
+- Top bar (`TopBar.tsx`): logo, testnet/mainnet switch, Built on Reactive badge, `[ CONNECT WALLET ]`
+- Guardian card (`GuardianCard.tsx`): symbol + word state, mono countdown, last activity per watched chain, `[ I'M ALIVE ]` as the one Royal button
+- Controls (`Controls.tsx`): `[ PAUSE ALL ]` with a confirm step, `[ UNPAUSE ]`, `[ WITHDRAW ]` with Max; REACT balance with `[!] LOW REACT` and `(x) OUT OF REACT`
+- Vault card (`VaultCard.tsx`): balance as the one large stat, total saved and days running from the executor's logs
+- Rule cards (`RuleCards.tsx`): one plain sentence each, ASCII icon, `[ ON ]` / `[ OFF ]` / `PAUSED`
+- Setup flow (`SetupFlow.tsx`, `lib/setup.ts`, `lib/rulebook.ts`, `lib/permit.ts`): three rule cards with plain-language fields and blur-first validation → `// REVIEW` in plain English → deploy the Rulebook on Reactive with REACT attached → vesting approval if Claim is on → USDC permit → `createVault` on Base, each a mono row `( ) WAITING` → `(~) PENDING` → `(v) SUCCESS` with its tx link, or `(x) FAILED · what to do next`. Pre-checks before any signature: no existing vault, vesting contract pays this wallet, predicted vault address. A deployed Rulebook is reused after a reload if its settings are unchanged
+- States: ASCII spinner, empty state with `[ SET UP YOUR RULES ]`, failure sentences (`lib/tx.ts`), `?preview=<state>` sample data with a PREVIEW banner
+- Make targets `web-install`, `web-sync`, `web-dev`, `web-check`, `web-e2e`; a CI web job (lint, typecheck, format, unit, build, Playwright)
+
+Tests
+- forge test: 119 passed, 1 skipped (fork test without `BASE_RPC`); contracts unchanged this phase
+- invariants: unchanged since Phase 3 (256 × 50, all holding)
+- frontend: lint, typecheck and format clean; Vitest 35 passed, 2 skipped (the live-chain test runs with `LIVE=1` and passed against the phone's vault); Playwright 16 passed (8 tests × desktop and Pixel 7: connect, Active, Warning, Released, Paused, Low REACT, No vault, setup form); CI green
+- A unit test proves the page builds byte-for-byte the same Rulebook deploy as the script (`tests/unit/setup.test.ts`)
+- Lighthouse accessibility: 100 on the home page and the active, warning, released and no-vault states (gate: 95)
+- An independent checker reviewed the page against `DESIGN.md` and the PRD after a calibration run on a copy with a planted difference; its findings were fixed (theme tokens for every colour, the hero card radius and 64 px balance, one shared label component, Maya focus rings on inputs, spacing between signing rows, a one-sentence empty state)
+
+On-chain evidence (2026-11-16, details in `TX_HASHES.md`)
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Setup from the page: Rulebook deploy | Lasna | `0x4f467cc0d3dca71f58627638c2fdbb3467e81dc5146daca2652019d3abb3831d` | | |
+| Setup from the page: permit + createVault | Base Sepolia | `0xa6b56620b4fd2a00d6d03e132f874c4715931f29fbd2fdef196eb53a5f7592bf` | | |
+| Rule 1 split into that vault | Base Sepolia → Lasna → Base Sepolia | `0x028b6f771094a4f46e40e2873703a100294b5ac6860827924ce230eb521728a1` | `0x32fcea5a5b4aae3fe4fb488753c1019fb5ed9cd6228585b6d19feffa88410136` | `0xca46265c602bfd5021a943acce0c3836f36561718983d082581e190cd33bcc88` |
+| I'm alive from the page | Base Sepolia | `0x0e2c396362ef9e95c8d16a74ae420b9c4bcca1a4427e85418fcbea0f4ea196df` | | |
+| Pause / unpause from the page | Base Sepolia | `0x6c54d2f821a4cc3bf5bac3ef25cdf11ebf145a9c54e3913b8b9852b3374c0afa` / `0x422bb2be821b1373810506c4f8fc8de0c7b91be9dc8dc9aa098cf90303c46dfe` | | |
+| Withdraw 1 USDC from the page | Base Sepolia | `0x697a2b8cb772e7a7a820a27cae3611014ed8b1e08386c06ec2a9e7e3ef046dfb` | | |
+
+Manual run: the user set up a second MetaMask mobile account (`0xc818…f0b7`, no key on this machine) from the page alone over the LAN. A 10 USDC payment from the listed sender put 2 USDC in the new vault in under 10 seconds.
+
+Decisions and findings (NOTES §14)
+- The page deploys Rulebooks on `Cron1000` on both networks: cheaper, and enough for a 1-hour Guardian check.
+- Reactive has no Multicall3, so its reads use JSON-RPC batching; savings history reads use publicnode, whose RPC allows 50k-block log ranges.
+- Kept on purpose:
+  - `[ SIGN SETUP ]` is a second Royal button, but only in the setup view, never beside `[ I'M ALIVE ]`.
+  - Inputs use mono, since they hold on-chain values.
+  - Rule cards show status, with editing by script (`make edit-rules`), as the PRD scopes it.
+  - "Built on Reactive" is a text badge until the official logotype is added from the press kit in Phase 6.
+- Two failure sentences were added after the manual run: a wallet address typed as the vesting contract, and MetaMask error 4100 (the account wasn't connected to the site).
+- Recent-actions list (P2) not built.
+
+Risks and open questions
+- **Mainnet card unproven** until Phase 4. Proposed default: run Phase 4 as soon as funds arrive (by about Nov 25–26 to leave 7 days), then confirm the card against the live vault and close this gate.
+- **The page is LAN-only.** "Someone who did not build it sets up a vault from the page" (Phase 7) needs a public URL. Proposed default: deploy `web/` to Vercel when the repo goes public, after Phase 6.
+- **Low test Rulebooks.** The phone's first testnet Rulebook is nearly out of lREACT and the new one has about 0.09. That's fine for this gate; top them up only if they're needed for the demo.
+
+Next
+- Review this gate. The open item closes with Phase 4: "deploy to mainnet", plus about 5 USDT worth of Base ETH and REACT, and the cap and beneficiary you approve.
+- Phase 6 (hardening and documentation) when you ask for it.

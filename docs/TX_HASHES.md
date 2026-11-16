@@ -19,6 +19,15 @@ A second MetaMask mobile account, `0xc8180E32107C82E84Ea8a1256Fab39cC616bf0b7`, 
 | --- | --- | --- | --- | --- |
 | Rule 1 split | Base Sepolia → Lasna → Base Sepolia | [0x028b6f77…28a1](https://sepolia.basescan.org/tx/0x028b6f771094a4f46e40e2873703a100294b5ac6860827924ce230eb521728a1) | [0x32fcea5a…0136](https://lasna.reactscan.net/tx/0x32fcea5a5b4aae3fe4fb488753c1019fb5ed9cd6228585b6d19feffa88410136) | [0xca46265c…cc88](https://sepolia.basescan.org/tx/0xca46265c602bfd5021a943acce0c3836f36561718983d082581e190cd33bcc88) |
 
+**Everyday actions from the page** (Base Sepolia, each ending `(v) SUCCESS`):
+
+| Action | Account | Tx | Result |
+| --- | --- | --- | --- |
+| `[ I'M ALIVE ]` | `0x810f…3276` | [0x0e2c3963…96df](https://sepolia.basescan.org/tx/0x0e2c396362ef9e95c8d16a74ae420b9c4bcca1a4427e85418fcbea0f4ea196df) | `Heartbeat.Alive` |
+| `[ PAUSE ALL ]` → `[ YES, PAUSE ALL ]` | `0x810f…3276` | [0x6c54d2f8…0afa](https://sepolia.basescan.org/tx/0x6c54d2f821a4cc3bf5bac3ef25cdf11ebf145a9c54e3913b8b9852b3374c0afa) | `OrdersExecutor.Paused` |
+| `[ UNPAUSE ]` | `0x810f…3276` | [0x422bb2be…6dfe](https://sepolia.basescan.org/tx/0x422bb2be821b1373810506c4f8fc8de0c7b91be9dc8dc9aa098cf90303c46dfe) | `OrdersExecutor.Unpaused` |
+| `[ WITHDRAW ]` 1 USDC | `0xc818…f0b7` | [0x697a2b8c…6dfb](https://sepolia.basescan.org/tx/0x697a2b8cb772e7a7a820a27cae3611014ed8b1e08386c06ec2a9e7e3ef046dfb) | `SavingsVault.Withdrawn`, vault 2 → 1 USDC |
+
 Findings from the run: the page's pre-check refused a wallet address typed as the vesting contract before anything was signed; MetaMask returns error 4100 when the page asks an account the site was not connected with to sign, so the page now tells the user to reconnect with that account ticked.
 
 ## Phase 4 rehearsal: setup from a phone wallet on testnet (2026-11-16)
