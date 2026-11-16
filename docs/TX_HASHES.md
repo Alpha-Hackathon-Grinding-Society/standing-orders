@@ -4,6 +4,24 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
+## Phase 4 rehearsal: setup from a phone wallet on testnet (2026-11-16)
+
+The mainnet setup flow, run on testnet first: the user's MetaMask mobile wallet `0x810fCBF8A695Ffa0e4480207c667995139F33276` signed every step on the setup page (`web/setup`). No key for it exists on this machine. Settings: 20% of USDC from the listed sender `0x1501…0502`, at most 25 USDC per 30 days; permit budget 100 USDC; Guardian 90 d / 14 d; `Cron100`; Rulebook funded with 0.5 lREACT.
+
+| Step | Network | Tx | Result |
+| --- | --- | --- | --- |
+| Rulebook deploy (signed on the phone) | Lasna | [0x4bb10f46…a4ed](https://lasna.reactscan.net/tx/0x4bb10f468471a19e0ccd25cdce5036c0e087e6b89225979677a1a7ac26b7a4ed) | Rulebook `0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a` |
+| Permit + createVault (signed on the phone) | Base Sepolia | [0x727aba7f…6d63](https://sepolia.basescan.org/tx/0x727aba7fe36cbb667e7e7a226efc1a22c3ccd0b7b8d1bfa872b611f3293e6d63) | Vault `0x074DB6571aCB40D0d19E126C293A5cDC2754b8e9` (as predicted), Rulebook registered, allowance 100 USDC |
+| Guardian saw the permit `Approval` as activity | Lasna | [0x7cb6d044…5a92](https://lasna.reactscan.net/tx/0x7cb6d0440d7c66eff5623d354b23b760abaf2b2b5becf85892bb633e8a115a92) | `ActivityRecorded(84532, 0x727aba…)` |
+
+**Rule 1 split into the phone's vault** (100 USDC from the listed sender → 20 USDC saved, about 6 s from payment to vault):
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 1 split | Base Sepolia → Lasna → Base Sepolia | [0xa3260f2e…a5ea](https://sepolia.basescan.org/tx/0xa3260f2e4eea1b53e604574a4f8757ff781e4817431536ccd953a989336ba5ea) | [0x4a9d0e43…ba98](https://lasna.reactscan.net/tx/0x4a9d0e4310126d563d43f95c2f40d9b4a6f609aa58ca9a9df16b1309e991ba98) | [0xbbcb02cf…1a70](https://sepolia.basescan.org/tx/0xbbcb02cfd6036dd4612d764de4ebf646a758edd612ad838a277948df79791a70) |
+
+Finding: MetaMask mobile sent the createVault through its relay (tx `from` `0xB01c…9C2E`, `to` `0xdb9B…7dB3`, the wallet's smart-account delegation), not as a plain transaction from the wallet. The factory still saw the phone wallet as the caller, so the vault owner and registration are correct. Origin-tx senders are therefore not a reliable user signal; Steward's subscriptions filter on event topics (`owner`, `from`, `user`), which is what makes this work. Deploy cost: 3.8 M gas × 100 gwei = 0.38 lREACT on top of the funding value; the phone was topped up with 0.3 lREACT ([0x2a0a1d02…5055](https://lasna.reactscan.net/tx/0x2a0a1d020d7147052a7aa138fa5fa4cc349e7d5343b0d065b3bc49d0c5745055)).
+
 ## Phase 3: Rule 2 and the Guardian (2026-11-16)
 
 User `0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502`; beneficiary `0x810fCBF8A695Ffa0e4480207c667995139F33276`. Script: `make e2e-phase3`. Demo timers: `Cron10`, claim every 90 s, silence 180 s, grace 120 s, Guardian check every 30 s. Watched chains: Base Sepolia and Unichain Sepolia.
