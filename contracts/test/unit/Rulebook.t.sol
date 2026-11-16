@@ -232,4 +232,33 @@ contract RulebookTest is RulebookFixture {
         rulebook.coverDebt();
         assertEq(address(sys).balance, 0.25 ether);
     }
+
+    // ------------------------------------------------------------------ REACT recovery
+
+    function test_withdrawReactPaysDebtThenTheOwner() public {
+        vm.deal(address(rulebook), 1 ether);
+        sys.setDebt(address(rulebook), 0.25 ether);
+        vm.expectEmit(address(rulebook));
+        emit Rulebook.ReactWithdrawn(0.75 ether);
+        vm.prank(user);
+        rulebook.withdrawReact(0.75 ether);
+        assertEq(address(sys).balance, 0.25 ether);
+        assertEq(user.balance, 0.75 ether);
+        assertEq(address(rulebook).balance, 0);
+    }
+
+    function test_withdrawReactIsOwnerOnly() public {
+        vm.deal(address(rulebook), 1 ether);
+        vm.prank(stranger);
+        vm.expectRevert(Rulebook.NotOwner.selector);
+        rulebook.withdrawReact(1 ether);
+    }
+
+    function test_withdrawReactCannotTakeMoreThanIsLeftAfterDebt() public {
+        vm.deal(address(rulebook), 1 ether);
+        sys.setDebt(address(rulebook), 0.5 ether);
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(AbstractPayer.InsufficientFunds.selector, 0.75 ether, 0.5 ether));
+        rulebook.withdrawReact(0.75 ether);
+    }
 }

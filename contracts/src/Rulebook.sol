@@ -90,15 +90,15 @@ contract Rulebook is AbstractReactive {
 
     uint16 public splitBps;
     uint256 public periodCap;
-    uint256 public periodLength;
+    uint256 public immutable periodLength;
     mapping(address => bool) public isIncomeSender;
     address[] internal _incomeSenders;
 
-    uint256 public claimInterval;
+    uint256 public immutable claimInterval;
 
-    uint256 public silencePeriod;
-    uint256 public gracePeriod;
-    uint256 public guardianCheckInterval;
+    uint256 public immutable silencePeriod;
+    uint256 public immutable gracePeriod;
+    uint256 public immutable guardianCheckInterval;
     mapping(uint256 chainId => bool) public isWatched;
     uint256[] internal _watchedChains;
 
@@ -139,6 +139,7 @@ contract Rulebook is AbstractReactive {
     event GuardianWarning(uint256 warningSince, uint256 lastActiveAny);
     event GuardianCleared(uint256 indexed chainId, uint256 indexed originTxHash);
     event GuardianReleased(uint256 nonce);
+    event ReactWithdrawn(uint256 amount);
 
     error NotOwner();
     error ZeroAddress();
@@ -242,6 +243,16 @@ contract Rulebook is AbstractReactive {
     /// @notice Pays any debt owed to the system contract from this contract's balance. Anyone may call it.
     function coverDebt() external {
         _coverDebt();
+    }
+
+    /// @notice Sends REACT from this Rulebook back to its owner, after paying any debt first. Used to recover what is
+    ///         left once the Guardian has released and the Rulebook has stopped. It only ever pays the owner, and it
+    ///         never touches savings: those live in the vault on Base.
+    /// @dev Withdrawing below the running cost while Active stops the rules, like letting the balance run out.
+    function withdrawReact(uint256 amount) external onlyOwner {
+        _coverDebt();
+        _pay(payable(owner), amount);
+        emit ReactWithdrawn(amount);
     }
 
     function incomeSenders() external view returns (address[] memory) {
