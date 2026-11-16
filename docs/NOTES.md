@@ -212,6 +212,18 @@ A Rulebook tick that exits after one timestamp comparison will cost about the sa
 | MetaMask account permissions | Asking an account the site was not connected with to sign returns error 4100. The page explains it: disconnect and reconnect with that account ticked. | Phase 5 run |
 | Windows build | Build and serve from a path with an uppercase drive letter (`C:\…`). With `c:\…` Node resolves React twice and prerender fails with `useState of null`. CI on Linux is unaffected. | `Makefile` `web-*` targets |
 
+## 15. Phase 6 gas and REACT review (2026-11-16)
+
+| Item | Finding | Evidence |
+| --- | --- | --- |
+| Idle cron ticks | `react()` checks `Released`, recognises the cron log, then `_onCron` exits on one comparison: `block.timestamp < nextCronWork`. `nextCronWork` is the earliest of the next period reset, claim and Guardian check, recomputed only when work runs. The five timers it is computed from are now `immutable` (Slither `immutable-states`), so even busy ticks read no storage for them. | `Rulebook._onCron`, `_scheduleCronWork`; `test_G2_mostTicksExitAfterOneComparison` asserts an idle tick costs under a third of a busy one |
+| What a Rulebook pays | ≈ 0.012 lREACT per delivered log (cron tick or matching event), whether or not it does work, plus each callback's fee. A quiet day on `Cron1000` (≈ 81 ticks) ≈ 1 lREACT. | NOTES §11; Phase 5 Rulebook below |
+| Phase 5 Rulebook, first 49 minutes | Funded 0.1 lREACT; 0.014 went on deployment, then ≈ 3 ticks (≈ 0.037), ≈ 4 user events (permit, income, withdraw; ≈ 0.044) and the split callback (0.0115, left as debt). It ran out after 49 minutes, as expected for a test amount. | `0x80e7…7F74` balance 0.0077, debt 0.0115 |
+| Mainnet REACT per day | Not measured yet; starts with Phase 4 (`docs/MAINNET_USAGE.md`). Expected ≈ 1.3 REACT/day for `Cron1000`, more on days with payments. | — |
+| Debt and top-up | When the balance can't cover a delivery, the system contract records `debt(rulebook)` and stops delivering. `coverDebt()` (anyone may call it) pays the debt from the balance. `make top-up-react` sends `TOP_UP_WEI` and calls `coverDebt()` in one script. | `AbstractPayer._coverDebt`, `script/ops/UserOps.s.sol` `TopUpReact` |
+| Recovering REACT | `withdrawReact(amount)`, owner only: pays any debt first, then sends `amount` to the owner and nothing else. `make withdraw-react` sends everything left after debt. This closes the Phase 3 open question (1.99 + 0.69 lREACT stranded in released Rulebooks; those were deployed before this function existed, so they stay stranded). | `test_withdrawReact*` |
+| Rulebook size | 13,862 bytes of creation code after these changes. The page deploys whatever `make web-sync` copies from `contracts/out`. | `web/lib/generated/contracts.json` |
+
 ---
 
 ## Design impact (A and B approved 2026-11-15; C approved with the Phase 1 cron default)

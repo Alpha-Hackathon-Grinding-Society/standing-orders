@@ -248,3 +248,48 @@ Risks and open questions
 Next
 - Review this gate. The open item closes with Phase 4: "deploy to mainnet", plus about 5 USDT worth of Base ETH and REACT, and the cap and beneficiary you approve.
 - Phase 6 (hardening and documentation) when you ask for it.
+
+## Phase 6 report: Hardening and documentation
+
+Gate: NOT PASSED, one criterion open. "The mainnet vault has run 7+ days with real tx hashes in the usage table" needs Phase 4, which is parked until mainnet funds are available. CI is green, Slither is triaged and the README is in its final order. The README's video and mainnet sections are placeholders until Phases 7 and 4 fill them.
+
+Built
+- `Rulebook.withdrawReact(amount)`, owner only: pays any debt, then returns REACT to the owner and nobody else. This closes the Phase 3 open question about stranded REACT. Exposed as `make withdraw-react` (`WithdrawReact` in `script/ops/UserOps.s.sol`).
+- Rulebook timers made `immutable` (`periodLength`, `claimInterval`, `silencePeriod`, `gracePeriod`, `guardianCheckInterval`), from Slither `immutable-states`.
+- `SavingsVault`: the owner and executor checks each live in one internal function the modifiers call, the same pattern as OpenZeppelin and `AbstractPayer`.
+- `docs/SECURITY.md`: what is checked, the Slither triage, trust assumptions, known limits.
+- `README.md` in the PRD's order: what it is, video, tx-hash table (testnet; mainnet slot), mainnet usage, architecture (Mermaid diagram plus the contract table), safety limits (the seven invariants in plain words, the plain-ETH note, REACT running out), how to run (one deploy command per network, every everyday action, keeping a Rulebook funded, the app), deployed addresses.
+- `docs/NOTES.md` §15: gas and REACT review.
+- Makefile: fixed a literal `\n` in `.PHONY`. The one-command deploy targets already existed (`deploy-base-sepolia`, `deploy-base`, `deploy-rulebook-lasna`, `deploy-rulebook-reactive`), and each writes `contracts/deployments/<network>.json`. Mainnet targets refuse to run without `STEWARD_MAINNET_APPROVED`.
+- The web app deploys the new Rulebook bytecode. Its byte-for-byte test now checks what it was meant to check: the page encodes the same constructor settings as the script, and it ships the current compiled bytecode.
+
+Tests
+- forge test: 124 passed, 1 skipped (fork test without `BASE_RPC`), 0 failed
+- coverage of `src/`: 99.8% lines (420/421), 96.6% branches (85/88)
+  - `OrdersExecutor`: 100% lines, 100% branches
+  - `SavingsVault`: 100% lines, 100% branches
+  - The three Rulebook items reported as missed are constructor reverts that have tests (`test_constructorValidatesConfig`, `test_constructorValidatesRule2AndGuardian`). Forge coverage doesn't record reverts inside a constructor.
+- invariants: 1,000 runs × depth 50 (50,000 calls, 0 reverts), all seven holding
+- frontend: lint, typecheck and format clean; Vitest 36 passed, 2 skipped (live)
+- Slither 0.11.6: 3 High and 9 Medium, all false positives or intended, explained in `SECURITY.md`; 26 Low accepted; 5 optimizations applied
+- Secrets: the deployer key is in no commit; the RPC URLs in history are keyless public endpoints; `.env` is ignored and untracked; the license is MIT
+
+On-chain evidence
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| none new this phase | | | | |
+
+Decisions and findings (NOTES §15, SECURITY.md)
+- `withdrawReact` pays only the owner, not a `to` address as Phase 3 proposed, so no code path can send even REACT anywhere new. It is allowed at any time, because the REACT is the owner's own. Withdrawing below the running cost simply stops the rules, as running out would.
+- The Rulebooks already deployed (the phone's two testnet ones and the Phase 3 runs) predate `withdrawReact`, so their leftover lREACT stays where it is. New Rulebooks, from the app or `make deploy-rulebook-*`, have it.
+- Measured REACT use matches the Phase 1 model: ≈ 0.012 per delivered log plus callback fees; a quiet `Cron1000` day ≈ 1 lREACT. The Phase 5 test Rulebook (0.1 lREACT) ran out after 49 minutes, as expected.
+- The release callback's single attempt is documented as a known limit, with the mitigation: keep the executor's ETH float funded and check it with `cast`. A beneficiary-triggered retry is left for later.
+
+Risks and open questions
+- **The 7-day mainnet run is the critical path.** Submission is Dec 4, so the mainnet vault must start by about Nov 26. Proposed default: run Phase 4 the day funds arrive.
+- **The "Built on Reactive" badge is still text.** The official logotype isn't in the repo, and fetching it means downloading from Reactive's press kit. Proposed default: add it in Phase 7 if the press kit has an SVG, otherwise keep the text badge.
+- **A public URL for the app** is needed for the Phase 7 "someone else sets up a vault" item. Proposed default: deploy `web/` to Vercel once the repo is public.
+
+Next
+- Review this gate. Its open item, and Phase 5's, close with Phase 4: say "deploy to mainnet" when you have about 5 USDT for Base ETH and REACT, and confirm the per-period cap, REACT amount, income sender and beneficiary.
+- Phase 7 (video and submission) when you ask for it.
