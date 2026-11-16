@@ -13,7 +13,8 @@ SCRIPT := cd contracts && forge script
 	deploy-hello-base deploy-hello-lasna hello-stop-cron \
 	e2e-hello e2e-hello-cron e2e-rule1 e2e-phase3 e2e-claim e2e-guardian-clear e2e-guardian-release \
 	alive pause unpause withdraw propose-beneficiary apply-beneficiary propose-cold-wallet apply-cold-wallet \
-	edit-rules top-up-react check-now status \n	web-install web-sync web-dev web-check web-e2e
+	edit-rules top-up-react withdraw-react check-now status \
+	web-install web-sync web-dev web-check web-e2e
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-26s %s\n", $$1, $$2}'
@@ -119,6 +120,8 @@ edit-rules: ## Change Rule 1 (SPLIT_BPS, PERIOD_CAP, INCOME_SENDERS) on your Rul
 	$(OPS) EditRules --rpc-url $(REACTIVE_SIDE)
 top-up-react: ## Send TOP_UP_WEI of REACT to your Rulebook and clear its debt
 	$(OPS) TopUpReact --rpc-url $(REACTIVE_SIDE)
+withdraw-react: ## Send the REACT left in your Rulebook back to you, after its debt (WITHDRAW_REACT_WEI optional)
+	$(OPS) WithdrawReact --rpc-url $(REACTIVE_SIDE)
 check-now: ## Advance the Guardian by timestamp if cron is late
 	$(OPS) CheckNow --rpc-url $(REACTIVE_SIDE)
 status: ## Print your Rulebook's Guardian state, clocks and REACT balance
