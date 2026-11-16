@@ -5,7 +5,7 @@ import type { StewardData } from "@/lib/data";
 import { formatAmount, formatDuration, joinWords, shortAddress } from "@/lib/format";
 import { chainName } from "@/lib/networks";
 import { USDC_DECIMALS } from "@/lib/setup";
-import { type Tone, toneClass } from "./ui";
+import { Label, type Tone, toneClass } from "./ui";
 
 type Rule = { key: string; title: string; icon: string; on: boolean; sentence: string; meta?: string };
 
@@ -54,9 +54,7 @@ export function RuleCards({ data }: { data: StewardData }) {
 
   return (
     <section aria-labelledby="rules-title" className="flex flex-col gap-4">
-      <h2 id="rules-title" className="font-mono text-sm uppercase text-ink-muted">
-        {"// Your rules"}
-      </h2>
+      <Label id="rules-title">Your rules</Label>
       <ul className="grid gap-4 md:grid-cols-3">
         {rules.map((rule) => {
           const [word, tone]: [string, Tone] = !rule.on
@@ -67,7 +65,7 @@ export function RuleCards({ data }: { data: StewardData }) {
           return (
             <li
               key={rule.key}
-              className="flex flex-col gap-3 rounded-xl border-2 border-hairline bg-linear-to-b from-[#1d1d1f] to-surface p-4 md:p-6"
+              className="flex flex-col gap-3 rounded-xl border-2 border-hairline bg-linear-to-b from-card-from to-surface p-4 md:p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <pre aria-hidden="true" className="font-mono text-xs leading-4 text-ink-muted">

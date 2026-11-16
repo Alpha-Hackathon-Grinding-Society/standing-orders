@@ -8,7 +8,7 @@ import { ExternalLink, StatusToken } from "./ui";
 /** One signature as a mono row: `(~) WAITING` → `(~) PENDING` → `(v) SUCCESS 0x1234...` or `(x) FAILED`. */
 export function TxRow({ label, status }: { label: string; status: TxStatus }) {
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-hairline/50 py-2 first:border-t-0">
+    <li className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2">
       <span className="text-ink-default">{label}</span>
       <span className="flex flex-wrap items-baseline gap-2 font-mono text-sm" aria-live="polite">
         <TxToken status={status} />

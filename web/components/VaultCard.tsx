@@ -4,7 +4,7 @@ import type { StewardData, StewardHistory } from "@/lib/data";
 import { formatAmount, shortAddress } from "@/lib/format";
 import { NETWORKS, addressUrl } from "@/lib/networks";
 import { USDC_DECIMALS } from "@/lib/setup";
-import { ExternalLink } from "./ui";
+import { ExternalLink, Label } from "./ui";
 
 /** The one large stat on the page, under the page's only gradient (a 1px top border). */
 export function VaultCard({ data, history }: { data: StewardData; history: StewardHistory | undefined }) {
@@ -15,13 +15,11 @@ export function VaultCard({ data, history }: { data: StewardData; history: Stewa
   return (
     <section
       aria-labelledby="vault-title"
-      className="gradient-top flex flex-col gap-4 rounded-lg border border-hairline bg-surface p-4 md:p-6"
+      className="gradient-top flex flex-col gap-4 rounded-xl border border-hairline bg-surface p-4 md:p-6"
     >
-      <h2 id="vault-title" className="font-mono text-sm uppercase text-ink-muted">
-        {"// Vault balance"}
-      </h2>
+      <Label id="vault-title">Vault balance</Label>
       <p className="flex flex-wrap items-baseline gap-3 text-ink">
-        <span className="text-5xl leading-none font-normal tabular-nums md:text-[64px]">{whole}</span>
+        <span className="text-display font-normal tabular-nums">{whole}</span>
         <span className="font-mono text-base text-ink-mono">USDC</span>
       </p>
       <p className="font-mono text-sm text-ink-mono">

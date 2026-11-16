@@ -63,7 +63,7 @@ export function Steward() {
   const shownHistory = previewState ? previewHistory(previewState, previewAt) : history.data;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1536px] flex-col gap-8 px-6 pt-6 pb-24">
+    <main className="mx-auto flex w-full max-w-page flex-col gap-8 px-6 pt-6 pb-24">
       <TopBar network={previewState ? "testnet" : network} onNetwork={chooseNetwork} preview={previewState !== null} />
       {previewState ? (
         <Notice tone="warning" symbol="[!]" word="PREVIEW">
@@ -127,7 +127,7 @@ function Body({ network, connected, user, data, history, loading, failed, now, p
     }
     return (
       <Intro action={<BracketButton onClick={() => setSettingUp(true)}>Set up your rules</BracketButton>}>
-        This wallet has no Steward vault on {n.label.toLowerCase()} yet. Setting one up takes three signatures and about
+        This wallet has no Steward vault on {n.label.toLowerCase()} yet; setting one up takes three signatures and about
         two minutes.
       </Intro>
     );

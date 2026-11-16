@@ -13,7 +13,7 @@ import { type SetupField, type SetupForm, defaultForm, reviewLines, validateSetu
 import { type TxStatus, WAITING, errorText } from "@/lib/tx";
 import { deploy, send, signTyped, waitFor } from "@/lib/wallet";
 import { TxRow } from "./TxRow";
-import { Notice, Panel, PrimaryButton } from "./ui";
+import { Label, Notice, Panel, PrimaryButton } from "./ui";
 
 const vestingOwnerAbi = parseAbi(["function owner() view returns (address)"]);
 
@@ -205,9 +205,7 @@ export function SetupFlow({
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="setup-title" className="flex flex-col gap-4">
-        <h2 id="setup-title" className="font-mono text-sm uppercase text-ink-muted">
-          {"// Set up your rules"}
-        </h2>
+        <Label id="setup-title">Set up your rules</Label>
         <p className="max-w-2xl text-ink-secondary">
           Answer in plain numbers. Nothing is signed until you review it below. Steward runs on {network.base.name} and{" "}
           {network.reactive.name}.
@@ -335,7 +333,7 @@ export function SetupFlow({
 
 function RuleFields({ title, sentence, children }: { title: string; sentence: string; children: ReactNode }) {
   return (
-    <fieldset className="flex min-w-0 flex-col gap-3 rounded-xl border-2 border-hairline bg-linear-to-b from-[#1d1d1f] to-surface p-4 md:p-6">
+    <fieldset className="flex min-w-0 flex-col gap-3 rounded-xl border-2 border-hairline bg-linear-to-b from-card-from to-surface p-4 md:p-6">
       <legend className="sr-only">{title}</legend>
       <h3 aria-hidden="true" className="text-xl font-medium text-ink">
         {title}
@@ -370,7 +368,7 @@ function Field({ label, hint, value, error, onChange, onBlur, multiline, inputMo
     autoComplete: "off",
     spellCheck: false,
     className:
-      "w-full rounded-md bg-surface-input px-3 py-2 font-mono text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-royal aria-invalid:ring-1 aria-invalid:ring-danger-text",
+      "w-full rounded-md bg-surface-input px-3 py-2 font-mono text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-maya aria-invalid:ring-1 aria-invalid:ring-danger-text",
   };
   return (
     <div className="flex min-w-0 flex-col gap-1">

@@ -9,7 +9,7 @@ import { NETWORKS, chainName } from "@/lib/networks";
 import { type TxStatus, WAITING, errorText } from "@/lib/tx";
 import { send, waitFor } from "@/lib/wallet";
 import { TxRow } from "./TxRow";
-import { Notice, Panel, PrimaryButton, StatusToken } from "./ui";
+import { Label, Notice, Panel, PrimaryButton, StatusToken } from "./ui";
 
 /** Guardian state as symbol + word, the countdown in mono, last activity per chain and `[ I'M ALIVE ]`. */
 export function GuardianCard({
@@ -69,7 +69,7 @@ export function GuardianCard({
       </div>
 
       <div className="flex flex-col gap-1">
-        <h3 className="font-mono text-sm uppercase text-ink-muted">Last activity</h3>
+        <Label level={3}>Last activity</Label>
         <ul className="flex flex-col gap-1 font-mono text-sm">
           {rb.lastActive.map(({ chainId, at }) => (
             <li key={chainId} className="flex justify-between gap-4">

@@ -20,13 +20,24 @@ export function toneClass(tone: Tone): string {
 }
 
 /** `// TITLE` section label: mono 14, uppercase, 50% white. */
-export function Label({ children, id, right }: { children: ReactNode; id?: string; right?: ReactNode }) {
+export function Label({
+  children,
+  id,
+  right,
+  level = 2,
+}: {
+  children: ReactNode;
+  id?: string;
+  right?: ReactNode;
+  level?: 2 | 3;
+}) {
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <h2 id={id} className="font-mono text-sm uppercase text-ink-muted">
+      <Heading id={id} className="font-mono text-sm uppercase text-ink-muted">
         {"// "}
         {children}
-      </h2>
+      </Heading>
       {right ? <div className="font-mono text-sm text-ink-muted">{right}</div> : null}
     </div>
   );
@@ -79,7 +90,7 @@ export function PrimaryButton({ children, className = "", ...rest }: ButtonProps
   return (
     <button
       type="button"
-      className={`min-h-11 cursor-pointer rounded-md bg-royal px-4 py-2 font-mono text-sm font-medium uppercase text-white transition-colors duration-300 ease-reactive hover:bg-[#3d68ff] disabled:cursor-default disabled:opacity-45 ${className}`}
+      className={`min-h-11 cursor-pointer rounded-md bg-royal px-4 py-2 font-mono text-sm font-medium uppercase text-white transition-colors duration-300 ease-reactive hover:bg-royal-hover disabled:cursor-default disabled:opacity-45 ${className}`}
       {...rest}
     >
       [ {children} ]

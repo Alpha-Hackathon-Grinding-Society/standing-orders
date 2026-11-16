@@ -17,6 +17,9 @@
   --color-hairline: rgba(245, 245, 247, 0.2);
 
   --color-royal: #2756fc;
+  --color-royal-hover: #3d68ff;
+  --color-logo-mid: #3c2eff; /* middle stop of the logo gradient; never used alone */
+  --color-card-from: #1d1d1f; /* marketing-card gradient start */
   --color-maya: #62d0ff;
   --color-quartz: #cbb5ff;
   --color-malachite: #00c853;
@@ -34,6 +37,11 @@
   --radius-xl: 12px;
 
   --ease-reactive: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --container-page: 1536px;
+  --text-display: 64px;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.01em;
 }
 
 html {
@@ -53,12 +61,14 @@ html {
   position: absolute;
   inset: 0 0 auto 0;
   height: 1px;
-  background: linear-gradient(90deg, #62d0ff, #3c2eff, #cbb5ff);
+  background: linear-gradient(90deg, var(--color-maya), var(--color-logo-mid), var(--color-quartz));
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-maya);
-  outline-offset: 2px;
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-maya);
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

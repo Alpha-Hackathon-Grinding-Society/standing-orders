@@ -9,7 +9,7 @@ import { USDC_DECIMALS } from "@/lib/setup";
 import { type TxStatus, errorText } from "@/lib/tx";
 import { send, waitFor } from "@/lib/wallet";
 import { TxRow } from "./TxRow";
-import { BracketButton, ExternalLink, Notice, Panel } from "./ui";
+import { BracketButton, ExternalLink, Label, Notice, Panel } from "./ui";
 
 type Props = { data: StewardData; preview: boolean; onDone: () => void };
 
@@ -145,7 +145,7 @@ export function Controls({ data, preview, onDone }: Props) {
                   aria-invalid={touched && invalid !== null}
                   aria-describedby={touched && invalid ? amountError : undefined}
                   placeholder={formatAmount(data.vaultBalance, USDC_DECIMALS)}
-                  className="min-h-11 w-40 rounded-md bg-surface-input px-3 font-mono text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-royal"
+                  className="min-h-11 w-40 rounded-md bg-surface-input px-3 font-mono text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-maya"
                 />
                 <BracketButton
                   onClick={() => {
@@ -196,7 +196,7 @@ function ReactBalance({ data }: { data: StewardData }) {
 
   return (
     <div className="flex flex-col gap-2 border-t border-hairline pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
-      <h3 className="font-mono text-sm uppercase text-ink-muted">{"// REACT balance"}</h3>
+      <Label level={3}>REACT balance</Label>
       <p className="font-mono text-sm text-ink-mono">
         <span className="text-ink">{formatAmount(rb.balance, 18, symbol)}</span> · about {days} day
         {days === 1 ? "" : "s"} of checks left ·{" "}
