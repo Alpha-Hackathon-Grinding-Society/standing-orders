@@ -158,7 +158,7 @@ const VAULT_ART = String.raw`
 function Intro({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <section aria-label="Get started" className="flex flex-col items-center gap-4 py-16 text-center">
-      <pre aria-hidden="true" className="font-mono text-sm leading-5 text-ink-faint">
+      <pre aria-hidden="true" className="font-mono text-sm leading-5 text-ink-muted">
         {VAULT_ART}
       </pre>
       <p className="max-w-xl text-lg text-ink-secondary">{children}</p>
