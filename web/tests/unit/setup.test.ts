@@ -1,7 +1,8 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Address } from "viem";
 import { describe, expect, it } from "vitest";
+import generated from "@/lib/generated/contracts.json";
 import { NETWORKS } from "@/lib/networks";
 import { rulebookConfig, rulebookDeployData } from "@/lib/rulebook";
 import { type SetupForm, defaultForm, reviewLines, validateSetup } from "@/lib/setup";
@@ -72,11 +73,26 @@ describe("validateSetup (U-1 setup form)", () => {
 });
 
 describe("rulebookDeployData (U-1: the page deploys what the script deploys)", () => {
-  it("matches the bytes SetupPage.s.sol produced for the phone's testnet Rulebook", () => {
+  // The phone's testnet Rulebook was deployed by SetupPage.s.sol. Its recorded initcode is the compiled bytecode
+  // of that day followed by the ABI-encoded Config. The bytecode moves on as the contract does; the settings the page
+  // encodes must still match the script's byte for byte.
+  it("encodes the same constructor settings as SetupPage.s.sol did for the phone's testnet Rulebook", () => {
     const file = join(__dirname, "..", "..", "..", "contracts", "deployments", "setup-base-sepolia.json");
     const script = JSON.parse(readFileSync(file, "utf8")) as { rulebookInitcode: string; vault: Address };
     const { plan } = validateSetup({ ...good, claimOn: false, guardianOn: true });
-    const data = rulebookDeployData(rulebookConfig(testnet, script.vault, plan!.choices));
-    expect(data.toLowerCase()).toBe(script.rulebookInitcode.toLowerCase());
+    const data = rulebookDeployData(rulebookConfig(testnet, script.vault, plan!.choices)).toLowerCase();
+    const args = data.slice(generated.rulebookBytecode.length);
+    expect(args.length).toBeGreaterThan(0);
+    expect(script.rulebookInitcode.toLowerCase().endsWith(args)).toBe(true);
+  });
+
+  it("deploys the current compiled Rulebook", () => {
+    const out = join(__dirname, "..", "..", "..", "contracts", "out", "Rulebook.sol", "Rulebook.json");
+    const data = rulebookDeployData(rulebookConfig(testnet, PHONE, validateSetup(good).plan!.choices));
+    expect(data.toLowerCase().startsWith(generated.rulebookBytecode.toLowerCase())).toBe(true);
+    if (existsSync(out)) {
+      const compiled = JSON.parse(readFileSync(out, "utf8")) as { bytecode: { object: string } };
+      expect(generated.rulebookBytecode.toLowerCase()).toBe(compiled.bytecode.object.toLowerCase());
+    }
   });
 });
