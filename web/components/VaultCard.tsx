@@ -4,6 +4,7 @@ import type { StewardData } from "@/lib/data";
 import { amountParts, shortAddress } from "@/lib/format";
 import { NETWORKS, addressUrl } from "@/lib/networks";
 import { USDC_DECIMALS } from "@/lib/setup";
+import { Odometer } from "./motion/Odometer";
 import { ExternalLink, Label } from "./ui";
 
 /** The one large stat on the page, under the page's only gradient (a 1px top border) and its one soft glow. */
@@ -19,8 +20,10 @@ export function VaultCard({ data }: { data: StewardData }) {
       <Label id="vault-title">Vault balance</Label>
       <p className="flex flex-wrap items-baseline gap-3 text-ink">
         <span className="text-display font-normal tabular-nums">
-          {whole}
-          <span className="text-ink-muted">{cents}</span>
+          <Odometer text={whole} />
+          <span className="text-ink-muted">
+            <Odometer text={cents} />
+          </span>
         </span>
         <span className="font-mono text-base text-ink-mono">USDC</span>
       </p>

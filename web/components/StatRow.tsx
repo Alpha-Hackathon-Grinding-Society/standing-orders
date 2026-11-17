@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { StewardData, StewardHistory } from "@/lib/data";
 import { amountParts, formatAmount, formatDuration } from "@/lib/format";
 import { USDC_DECIMALS } from "@/lib/setup";
+import { Odometer } from "./motion/Odometer";
 
 const DAY = 86_400;
 
@@ -52,7 +53,11 @@ function Tile({ label, value, note }: { label: string; value: ReactNode; note: R
         {label}
       </dt>
       <dd className="text-2xl font-normal tabular-nums text-ink md:text-3xl">
-        {value ?? <span className="text-ink-muted">...</span>}
+        {value ?? (
+          <span className="shimmer block h-[1lh] w-24 rounded-sm">
+            <span className="sr-only">Reading</span>
+          </span>
+        )}
       </dd>
       <dd className="text-sm text-ink-muted">{note ?? "reading..."}</dd>
     </div>
@@ -65,8 +70,10 @@ function Usdc({ raw }: { raw: bigint }) {
   return (
     <span className="flex flex-wrap items-baseline gap-x-2">
       <span>
-        {whole}
-        <span className="text-ink-muted">{cents}</span>
+        <Odometer text={whole} />
+        <span className="text-ink-muted">
+          <Odometer text={cents} />
+        </span>
       </span>
       <span className="font-mono text-sm text-ink-mono">USDC</span>
     </span>

@@ -60,7 +60,8 @@ test("Released: final state, no I'm alive", async ({ page }, info) => {
 
 test("Paused: rules show PAUSED and Unpause replaces Pause all", async ({ page }) => {
   await page.goto("/?preview=paused");
-  await expect(page.getByText("[!] PAUSED")).toBeVisible();
+  await expect(page.getByRole("region", { name: "// Controls" }).getByText("[!] PAUSED")).toBeVisible();
+  await expect(page.getByRole("region", { name: "// The loop" }).getByText("[!] PAUSED")).toBeVisible();
   // Pay yourself first and Guardian are on, so they read PAUSED; Claim and secure is off in this sample.
   await expect(page.getByText("[ PAUSED ]")).toHaveCount(2);
   await expect(page.getByText("[ OFF ]")).toHaveCount(1);

@@ -3,6 +3,7 @@
 // Shared pieces every card uses, so the DESIGN.md rules live in one place:
 // `// LABEL` headers, hairline panels, bracket and primary buttons, status tokens and the ASCII spinner.
 import { type ButtonHTMLAttributes, type ReactNode, useEffect, useState } from "react";
+import { Scramble } from "./motion/Scramble";
 
 export type Tone = "success" | "warning" | "danger" | "info" | "quartz" | "muted";
 
@@ -36,7 +37,7 @@ export function Label({
     <div className="flex items-baseline justify-between gap-4">
       <Heading id={id} className="scroll-mt-8 font-mono text-sm uppercase text-ink-muted">
         {"// "}
-        {children}
+        {typeof children === "string" ? <Scramble text={children} /> : children}
       </Heading>
       {right ? <div className="font-mono text-sm text-ink-muted">{right}</div> : null}
     </div>
@@ -77,10 +78,10 @@ export function BracketButton({ children, className = "", ...rest }: ButtonProps
   return (
     <button
       type="button"
-      className={`min-h-11 cursor-pointer rounded-md px-3 py-2 font-mono text-sm uppercase text-ink-default transition-colors duration-300 ease-reactive hover:bg-surface-active hover:text-white disabled:cursor-default disabled:opacity-45 disabled:hover:bg-transparent ${className}`}
+      className={`group min-h-11 cursor-pointer rounded-md px-3 py-2 font-mono text-sm uppercase text-ink-default transition-colors duration-300 ease-reactive hover:bg-surface-active hover:text-white disabled:cursor-default disabled:opacity-45 disabled:hover:bg-transparent ${className}`}
       {...rest}
     >
-      [ {children} ]
+      <Brackets>{children}</Brackets>
     </button>
   );
 }
@@ -90,11 +91,22 @@ export function PrimaryButton({ children, className = "", ...rest }: ButtonProps
   return (
     <button
       type="button"
-      className={`min-h-11 cursor-pointer rounded-md bg-royal px-4 py-2 font-mono text-sm font-medium uppercase text-white transition-colors duration-300 ease-reactive hover:bg-royal-hover disabled:cursor-default disabled:opacity-45 ${className}`}
+      className={`group min-h-11 cursor-pointer rounded-md bg-royal px-4 py-2 font-mono text-sm font-medium uppercase text-white transition-colors duration-300 ease-reactive hover:bg-royal-hover disabled:cursor-default disabled:opacity-45 ${className}`}
       {...rest}
     >
-      [ {children} ]
+      <Brackets>{children}</Brackets>
     </button>
+  );
+}
+
+/** `[ ACTION ]`, whose brackets open a little on hover and focus, like a cursor making room. */
+function Brackets({ children }: { children: ReactNode }) {
+  const bracket = "inline-block transition-transform duration-300 ease-settle group-disabled:translate-x-0";
+  return (
+    <>
+      <span className={`${bracket} group-hover:-translate-x-1 group-focus-visible:-translate-x-1`}>[</span> {children}{" "}
+      <span className={`${bracket} group-hover:translate-x-1 group-focus-visible:translate-x-1`}>]</span>
+    </>
   );
 }
 

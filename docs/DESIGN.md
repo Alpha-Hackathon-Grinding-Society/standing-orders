@@ -270,6 +270,25 @@ Write status as text plus symbol in mono: `(v) SUCCESS`, `(x) FAILED`, `(~) PEND
 7. **Dot-grid hero with a soft blue glow** (one per app, landing page only).
 8. **Hairline section dividers** across the full container width.
 
+## Motion
+
+*Our addition, built for Steward on 2026-11-17.* Motion follows the same rule as colour: it means something. Anything that moves on its own says "this is live"; entrances happen once; nothing loops for decoration.
+
+| Piece | What it does | Timing |
+| --- | --- | --- |
+| **Boot sequence** | First visit per tab only. A dot (the user's wallet), a crosshair, then the reactive loop draws itself out to labelled nodes (origin chains, Rulebook, executor, vault) while a mono log ticks through what is happening. A Maya pulse runs the loop once, then the wordmark decodes in. Any key, tap or `[ SKIP ]` ends it. Wide screens draw the loop left to right, tall screens top to bottom. | 3.4s, exits in 0.6s |
+| **Card entrance** | Cards rise out of an 8px blur with a 7° tilt the first time they scroll into view, 80ms apart. The filter is removed once settled. | 750ms, `ease-settle` |
+| **Text scramble** (motif 5) | `// LABEL` headings and the boot wordmark decode from terminal punctuation (`!<>-_\/[]{}=+*^?#01`), settling left to right. Screen readers get the real text only. | 600ms |
+| **Odometer** (motif 6) | The vault balance and stat values roll each digit into place, right to left, on first view and whenever they change. | 900ms, 35ms per digit |
+| **Loop pulse** | In `// THE LOOP`, a Maya dot runs each wire in turn and lights the stop it reaches. It stops, with `[!] PAUSED` or `(x) OUT OF REACT` beside it, when the loop cannot run. | 3.6s cycle |
+| **Live square** | The green square in the "Built on Reactive" badge pings softly. | 1s ping |
+| **Brackets** | `[ ACTION ]` brackets open by 4px on hover and keyboard focus. | 300ms |
+| **Shimmer** | A value still being read is a slow sweep over the input surface, never "...". | 1.6s |
+
+- **Easing:** colour, border and background changes keep `ease-reactive` (`cubic-bezier(0.4, 0, 0.2, 1)`). Entrances and rolling digits use `ease-settle` (`cubic-bezier(0.22, 1, 0.36, 1)`): fast out, long settle.
+- **Reduced motion:** when the visitor asks for it, the boot sequence does not play, cards and numbers appear in their final state, scrambles show the real text at once, and every CSS animation ends immediately.
+- **No smooth-scroll library.** Native scrolling stays, so the page behaves in wallet in-app browsers. In-page jumps scroll smoothly only when motion is allowed.
+
 ## Applying it to our three apps
 
 ### Reflex (Every Second Counts)

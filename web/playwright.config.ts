@@ -5,7 +5,9 @@ export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
   reporter: process.env.CI ? "github" : "list",
-  use: { baseURL: "http://127.0.0.1:3000" },
+  // The smoke test checks states, not timing, so it runs with reduced motion: no boot sequence, no
+  // entrances, plain numbers. tests/e2e/motion.spec.ts turns motion back on to check the animations.
+  use: { baseURL: "http://127.0.0.1:3000", reducedMotion: "reduce" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "phone", use: { ...devices["Pixel 7"] } },
