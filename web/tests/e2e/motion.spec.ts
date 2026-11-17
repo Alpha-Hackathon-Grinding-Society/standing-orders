@@ -16,7 +16,8 @@ test("the boot sequence plays once per tab, can be skipped, and leaves a working
   await expect(boot).toHaveCount(0);
 
   // Labels decode into their real names on screen (not only for screen readers), and the loop is live.
-  await expect(page.getByRole("heading", { name: "// Vault balance" })).toBeVisible();
+  // On phones the vault card sits below the money map; its label decodes once scrolled into view.
+  await page.getByRole("heading", { name: "// Vault balance" }).scrollIntoViewIfNeeded();
   await expect(page.locator('#vault-title > span > span[aria-hidden="true"]')).toHaveText("Vault balance");
   const loop = page.getByRole("region", { name: "// The loop" });
   await expect(loop.getByText(">> LIVE")).toBeVisible();

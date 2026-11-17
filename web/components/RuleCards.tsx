@@ -55,7 +55,7 @@ export function RuleCards({ data }: { data: StewardData }) {
   return (
     <section aria-labelledby="rules-title" className="flex flex-col gap-4">
       <Label id="rules-title">Your rules</Label>
-      <ul className="grid gap-4 md:grid-cols-3">
+      <ul className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
         {rules.map((rule) => {
           const [word, tone]: [string, Tone] = !rule.on
             ? ["OFF", "muted"]

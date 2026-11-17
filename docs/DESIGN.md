@@ -289,6 +289,24 @@ Write status as text plus symbol in mono: `(v) SUCCESS`, `(x) FAILED`, `(~) PEND
 - **Reduced motion:** when the visitor asks for it, the boot sequence does not play, cards and numbers appear in their final state, scrambles show the real text at once, and every CSS animation ends immediately.
 - **No smooth-scroll library.** Native scrolling stays, so the page behaves in wallet in-app browsers. In-page jumps scroll smoothly only when motion is allowed.
 
+## Money map
+
+Two thirds of the dashboard on wide screens (1280px and up), on the left and held in view while the cards scroll in the right third; narrower screens stack it, two thirds of the screen tall, above the cards. From an 860px-wide canvas the orb, cards and labels grow. It answers "where does my money come from?" with real on-chain payments only: USDC `Transfer` from a listed income sender to the owner, the executor's `ClaimExecuted`, and the vault's owner `Deposited`.
+
+| Part | What it is |
+| --- | --- |
+| **Vault orb** | The vault: a Royal sphere with a Maya highlight, two counter-rotating rings of ticks and dots (48s and 72s), a soft halo disc and two Maya ripples. Its balance sits above it, the number of tokens received below. |
+| **Source rail** | Three cards, one per source: Income (Pay yourself first), Vesting (Claim and secure), Deposits (by hand). Each shows its ASCII mark, payment count, tokens and name. The picked card has a Maya ring that slides between cards. On phones the rail becomes a row of three tabs above the drawing. |
+| **Fan and wheel** | One line per payment from the picked card to a dot on an arc, with the payment's source, age, amount and token beside it. Payments near the top and bottom fade and shrink like a picker wheel. It opens with the newest payment in the clearly readable part of the arc. Mouse wheel, a mouse drag (with a throw) or the arrow keys turn it; at either end the mouse wheel scrolls the page again. Touch is left to the page so a finger never gets trapped; on phones, tapping a payment brings it to the middle. |
+| **Picked payment** | Clicking a payment centres it, lights its line and names it below the drawing with a link to its transaction. |
+
+- **Colour roles:** lines, dots, comets and the selection ring are Maya (what is live). Resting trunks are 50% white at low opacity. The orb is the only Royal object in the drawing. Glows (the orb, the selection ring, the spark, small dot glows) are this one panel's exception to "no shadows", as the vault card's soft glow is.
+- **Motion:** on first view the halo opens, the orb springs in, trunks draw, cards slide in, the spark pops at the picked card, then payment lines draw from the middle outwards and each dot pops as its line arrives (about 2.1s). After that, comets run the lit lines every few seconds, the orb breathes and dots twinkle. Switching sources fades the old fan and draws the new one.
+- **Reduced motion:** everything renders in its final place, with no comets, ripples, rotation, breathing or twinkles. The wheel turns without a spring.
+- **Amounts:** what went into the vault (a claim, a deposit) reads `+50.00 USDC`. Income reads without the plus, because it is paid to the wallet and Pay yourself first moves only a share of it on; the picked-payment line says so.
+- **Addresses:** payment labels shorten addresses to `0x1501…0502` (first 6, last 4), an exception to the 6–8 + 6–8 rule because the wheel's labels are 140–160px wide. The full address is in the label's tooltip and in the picked-payment line.
+- **Accessibility:** the drawing is `aria-hidden`; the sources are a `tablist` (arrow keys, Home, End; each tab `aria-controls` the list) and the payments a `listbox` of `option`s whose active option is the one at the middle until one is picked, announced through a polite live region. A failed read shows `(x) FAILED` with what to do.
+
 ## Applying it to our three apps
 
 ### Reflex (Every Second Counts)

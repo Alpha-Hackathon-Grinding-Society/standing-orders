@@ -48,14 +48,17 @@ export function LoopDiagram({
         )
       }
     >
-      <ol className={`loop flex flex-col md:flex-row ${stalled ? "loop-stalled" : ""}`}>
+      <ol className={`loop flex flex-col md:flex-row xl:flex-col ${stalled ? "loop-stalled" : ""}`}>
         {stops.map((stop, i) => (
-          <li key={stop.label} className="flex flex-col md:flex-1 md:flex-row md:items-center">
+          <li
+            key={stop.label}
+            className="flex flex-col md:flex-1 md:flex-row md:items-center xl:flex-none xl:flex-col xl:items-stretch"
+          >
             {i > 0 ? (
               <span aria-hidden="true" className="loop-wire" style={{ "--i": i - 1 } as React.CSSProperties} />
             ) : null}
             <div
-              className="loop-stop flex flex-col gap-1 rounded-md border border-hairline bg-surface-raised px-3 py-2 md:flex-1"
+              className="loop-stop flex flex-col gap-1 rounded-md border border-hairline bg-surface-raised px-3 py-2 md:flex-1 xl:flex-none"
               style={{ "--i": i } as React.CSSProperties}
             >
               <span className="font-mono text-sm uppercase text-ink-muted">

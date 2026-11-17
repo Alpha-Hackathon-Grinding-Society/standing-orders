@@ -15,7 +15,7 @@ export function StatRow({ data, history }: { data: StewardData; history: Steward
 
   return (
     <section aria-label="Summary">
-      <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-2">
         <Tile
           label="Saved automatically"
           value={history ? <Usdc raw={history.savedTotal} /> : null}

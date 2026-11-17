@@ -33,6 +33,44 @@ test("Active: vault balance, green state, countdown to warning and I'm alive", a
   await page.screenshot({ path: info.outputPath("active.png"), fullPage: true });
 });
 
+test("Money map: sources as tabs, payments as a wheel, a picked payment links to its transaction", async ({
+  page,
+}, info) => {
+  await page.goto("/?preview=active");
+  const map = page.getByRole("region", { name: "// Where your money comes from" });
+  const tabs = map.getByRole("tab");
+  await expect(tabs).toHaveCount(3);
+  await expect(map.getByRole("tab", { name: /Income/ })).toHaveAttribute("aria-selected", "true");
+
+  const wheel = map.getByRole("listbox", { name: "Payments from income" });
+  await expect(wheel.getByRole("option")).toHaveCount(12);
+  // The newest payment opens in view; Home picks it. Income is paid to the wallet, so no plus sign.
+  await wheel.focus();
+  await wheel.press("Home");
+  await expect(wheel.getByRole("option", { selected: true })).toContainText("100.00 USDC");
+  await expect(
+    map.getByText(/paid to you by 0x1501D3\.\.\.9Cfb0502, 2 days ago\. Pay yourself first saves 20%/),
+  ).toBeVisible();
+  await expect(map.getByRole("link", { name: /0x101010/ })).toHaveAttribute("href", /\/tx\/0x1010/);
+  await page.screenshot({ path: info.outputPath("map.png") });
+
+  // The keyboard turns the wheel one payment at a time, and a click picks one.
+  await wheel.press("ArrowDown");
+  await expect(wheel.getByRole("option", { selected: true })).toContainText("250.00 USDC");
+  await wheel.getByRole("option").nth(0).click();
+  await expect(wheel.getByRole("option", { selected: true })).toContainText("2d");
+
+  await map.getByRole("tab", { name: /Deposits/ }).click();
+  const deposits = map.getByRole("listbox", { name: "Payments from deposits" });
+  await expect(deposits.getByRole("option")).toHaveCount(3);
+  for (const amount of ["+0.0500 WETH", "+0.0020 cbBTC", "+50.00 USDC"]) {
+    await expect(deposits.getByText(amount)).toBeVisible();
+  }
+
+  await map.getByRole("tab", { name: /Vesting/ }).click();
+  await expect(map.getByText("Claim and secure is off.")).toBeVisible();
+});
+
 test("Phones: a floating pill jumps between sections", async ({ page }, info) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/?preview=active");

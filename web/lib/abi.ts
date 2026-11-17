@@ -24,6 +24,7 @@ export const vaultAbi = parseAbi([
   "function beneficiary() view returns (address)",
   "function coldWallet() view returns (address)",
   "function withdraw(address token, uint256 amount)",
+  "event Deposited(address indexed owner, address indexed token, uint256 amount)",
 ]);
 
 export const heartbeatAbi = parseAbi(["function alive()"]);
@@ -33,6 +34,9 @@ export const erc20Abi = parseAbi([
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
   "function version() view returns (string)",
   "function nonces(address owner) view returns (uint256)",
   "function eip712Domain() view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)",
