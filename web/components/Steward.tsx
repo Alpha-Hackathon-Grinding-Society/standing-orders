@@ -9,8 +9,11 @@ import { NETWORKS, type NetworkKey } from "@/lib/networks";
 import { isPreviewState, previewData, previewHistory } from "@/lib/preview";
 import { Controls } from "./Controls";
 import { GuardianCard } from "./GuardianCard";
+import { RecentActions } from "./RecentActions";
 import { RuleCards } from "./RuleCards";
+import { SectionNav } from "./SectionNav";
 import { SetupFlow } from "./SetupFlow";
+import { StatRow } from "./StatRow";
 import { TopBar } from "./TopBar";
 import { VaultCard } from "./VaultCard";
 import { BracketButton, Notice, Spinner, useNow } from "./ui";
@@ -135,12 +138,17 @@ function Body({ network, connected, user, data, history, loading, failed, now, p
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid gap-4 md:grid-cols-2">
-        <VaultCard data={data} history={history} />
-        <GuardianCard data={data} now={now} preview={preview} onDone={onDone} />
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <VaultCard data={data} />
+          <GuardianCard data={data} now={now} preview={preview} onDone={onDone} />
+        </div>
+        <StatRow data={data} history={history} />
       </div>
       <RuleCards data={data} />
       <Controls data={data} preview={preview} onDone={onDone} />
+      <RecentActions data={data} history={history} now={now} />
+      <SectionNav />
     </div>
   );
 }

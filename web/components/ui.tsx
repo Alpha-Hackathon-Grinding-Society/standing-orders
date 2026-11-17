@@ -34,7 +34,7 @@ export function Label({
   const Heading = level === 2 ? "h2" : "h3";
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <Heading id={id} className="font-mono text-sm uppercase text-ink-muted">
+      <Heading id={id} className="scroll-mt-8 font-mono text-sm uppercase text-ink-muted">
         {"// "}
         {children}
       </Heading>

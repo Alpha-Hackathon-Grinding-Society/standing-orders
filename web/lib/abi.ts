@@ -15,6 +15,8 @@ export const executorAbi = parseAbi([
   "function unpause()",
   "event UserRegistered(address indexed user, address indexed vault, address indexed rulebook, address token)",
   "event SplitExecuted(address indexed user, address indexed vault, uint256 amount, uint256 nonce)",
+  "event ClaimExecuted(address indexed user, address indexed vesting, address indexed token, uint256 amount, bool toColdWallet, uint256 nonce)",
+  "event VaultReleased(address indexed user, address indexed vault, uint256 nonce)",
 ]);
 
 export const vaultAbi = parseAbi([

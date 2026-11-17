@@ -13,16 +13,34 @@ test("without a wallet, the page invites a connection", async ({ page }) => {
 test("Active: vault balance, green state, countdown to warning and I'm alive", async ({ page }, info) => {
   await page.goto("/?preview=active");
   await expect(page.getByRole("alert").getByText("[!] PREVIEW")).toBeVisible();
-  await expect(page.getByText("145.50", { exact: true })).toBeVisible();
+  const vault = page.getByRole("region", { name: "// Vault balance" });
+  await expect(vault.getByText("145.50", { exact: true })).toBeVisible();
   await expect(page.getByText("(v) ACTIVE")).toBeVisible();
-  await expect(page.getByText(/^87d \d\dh until warning$/)).toBeVisible();
+  // 87 days left at first render; the countdown ticks, so a second later it reads 86d 23h.
+  await expect(page.getByText(/^8[67]d \d\dh until warning$/)).toBeVisible();
   await expect(page.getByRole("button", { name: "[ I'm alive ]" })).toBeVisible();
   for (const title of ["Pay yourself first", "Claim and secure", "Guardian"]) {
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: "[ Pause all ]" })).toBeVisible();
   await expect(page.getByRole("button", { name: "[ Withdraw ]" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Summary" }).locator("dl > div")).toHaveCount(4);
+  await expect(page.getByText("41 days", { exact: true })).toBeVisible();
+  await expect(page.getByText("from Pay yourself first")).toBeVisible();
+  const recent = page.getByRole("region", { name: "// Recent automatic actions" });
+  await expect(recent.getByRole("listitem")).toHaveCount(3);
+  await expect(recent.getByText("+20.00 USDC")).toBeVisible();
   await page.screenshot({ path: info.outputPath("active.png"), fullPage: true });
+});
+
+test("Phones: a floating pill jumps between sections", async ({ page }, info) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/?preview=active");
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  await expect(nav).toBeVisible();
+  await nav.getByRole("link", { name: "Controls" }).click();
+  await expect(page).toHaveURL(/#controls-title$/);
+  await page.screenshot({ path: info.outputPath("phone.png") });
 });
 
 test("Warning: amber state and a countdown to release", async ({ page }, info) => {
@@ -36,6 +54,7 @@ test("Released: final state, no I'm alive", async ({ page }, info) => {
   await page.goto("/?preview=released");
   await expect(page.getByText("(v) RELEASED")).toBeVisible();
   await expect(page.getByRole("button", { name: "[ I'm alive ]" })).toHaveCount(0);
+  await expect(page.getByText("all to beneficiary")).toBeVisible();
   await page.screenshot({ path: info.outputPath("released.png"), fullPage: true });
 });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  amountParts,
   formatAgo,
   formatAmount,
   formatCountdown,
@@ -36,6 +37,18 @@ describe("formatAmount", () => {
   });
   it("supports no decimals", () => {
     expect(formatAmount(25_000_000n, 6, undefined, 0)).toBe("25");
+  });
+});
+
+describe("amountParts (stats with quiet cents)", () => {
+  it("splits the whole part from the cents", () => {
+    expect(amountParts(145_500_000n, 6)).toEqual(["145", ".50"]);
+    expect(amountParts(1_234_567_890_000n, 6)).toEqual([`1${T}234${T}567`, ".89"]);
+    expect(amountParts(0n, 6)).toEqual(["0", ".00"]);
+  });
+
+  it("returns no fraction when none is shown", () => {
+    expect(amountParts(145_500_000n, 6, 0)).toEqual(["145", ""]);
   });
 });
 

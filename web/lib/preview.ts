@@ -1,7 +1,7 @@
 // Labelled sample data for `?preview=<state>`: lets anyone (and the Playwright smoke test) see every
 // Guardian state without a wallet. The page always shows a PREVIEW banner when this is in use.
 import type { Address } from "viem";
-import type { StewardData, StewardHistory } from "./data";
+import type { RecentAction, StewardData, StewardHistory } from "./data";
 
 export const PREVIEW_STATES = ["active", "warning", "released", "paused", "lowreact", "novault"] as const;
 export type PreviewState = (typeof PREVIEW_STATES)[number];
@@ -99,6 +99,18 @@ export function previewData(state: PreviewState, now: number): StewardData {
 }
 
 export function previewHistory(state: PreviewState, now: number): StewardHistory {
-  if (state === "novault") return { savedTotal: 0n, since: null };
-  return { savedTotal: 145_500_000n, since: now - 41 * DAY };
+  if (state === "novault") return { savedTotal: 0n, since: null, recent: [] };
+  const action = (kind: RecentAction["kind"], amount: bigint | null, daysAgo: number, byte: string): RecentAction => ({
+    kind,
+    amount,
+    hash: `0x${byte.repeat(32)}`,
+    at: now - daysAgo * DAY,
+  });
+  const recent = [
+    action("split", 20_000_000n, 2, "a1"),
+    action("split", 25_000_000n, 32, "b2"),
+    action("split", 25_000_000n, 36, "c3"),
+  ];
+  if (state === "released") recent.unshift(action("release", null, 4, "d4"));
+  return { savedTotal: 145_500_000n, since: now - 41 * DAY, recent };
 }

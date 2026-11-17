@@ -1,6 +1,19 @@
 // Reads everything the dashboard shows straight from public RPCs: Base for the vault and executor,
 // Reactive for the Rulebook. No backend. Preview fixtures (lib/preview.ts) return the same shape.
-import { type Address, type PublicClient, createPublicClient, getAbiItem, http, zeroAddress } from "viem";
+import {
+  type Address,
+  type Hex,
+  type PublicClient,
+  createPublicClient,
+  formatLog,
+  getAbiItem,
+  http,
+  numberToHex,
+  pad,
+  parseEventLogs,
+  toEventSelector,
+  zeroAddress,
+} from "viem";
 import { SYSTEM_CONTRACT, erc20Abi, executorAbi, factoryAbi, rulebookAbi, systemAbi, vaultAbi } from "./abi";
 import type { GuardianState } from "./guardian";
 import { type Network, type NetworkKey, NETWORKS } from "./networks";
@@ -43,12 +56,28 @@ export type StewardData = {
   now: number;
 };
 
+/** One action the Rulebook carried out on Base, read from the executor's events. */
+export type RecentAction = {
+  kind: "split" | "claim" | "release";
+  /** USDC moved, or null when the amount is not in USDC (a vesting token) or not one number (a release). */
+  amount: bigint | null;
+  /** The callback transaction on Base. */
+  hash: Hex;
+  /** Unix seconds of the block it landed in. */
+  at: number;
+};
+
 export type StewardHistory = {
   /** Sum of every Rule 1 split into the vault. */
   savedTotal: bigint;
   /** When the vault was registered with the executor (unix seconds), or null if not found. */
   since: number | null;
+  /** The latest automatic actions, newest first, at most RECENT_LIMIT. */
+  recent: RecentAction[];
 };
+
+export const RECENT_LIMIT = 5;
+const HISTORY_EVENTS = ["UserRegistered", "SplitExecuted", "ClaimExecuted", "VaultReleased"] as const;
 
 const clients = new Map<string, PublicClient>();
 
@@ -205,13 +234,15 @@ export async function loadRulebook(network: Network, address: Address): Promise<
 }
 
 /**
- * Total saved by Rule 1 and the day the vault was registered, from the executor's events for this
- * user. Scans from the deployment block in chunks the logs RPC accepts.
+ * Total saved by Rule 1, the day the vault was registered and the latest automatic actions, from the
+ * executor's events for this user. Every event here has the user as its first indexed topic, so one
+ * eth_getLogs per chunk (OR of the four event signatures, AND the user) reads them all. Scans from the
+ * deployment block in chunks the logs RPC accepts.
  */
 export async function loadHistory(key: NetworkKey, user: Address): Promise<StewardHistory> {
   const network = NETWORKS[key];
   const d = network.deployment;
-  if (!d) return { savedTotal: 0n, since: null };
+  if (!d) return { savedTotal: 0n, since: null, recent: [] };
   const client = baseClient(network, network.logsRpc);
   const latest = await client.getBlockNumber();
 
@@ -221,26 +252,59 @@ export async function loadHistory(key: NetworkKey, user: Address): Promise<Stewa
     ranges.push([from, to > latest ? latest : to]);
   }
 
-  const [registered, split] = [
-    getAbiItem({ abi: executorAbi, name: "UserRegistered" }),
-    getAbiItem({ abi: executorAbi, name: "SplitExecuted" }),
-  ];
-  const chunks = await mapLimit(ranges, 4, ([fromBlock, toBlock]) =>
-    Promise.all([
-      client.getLogs({ address: d.ordersExecutor, event: registered, args: { user }, fromBlock, toBlock }),
-      client.getLogs({ address: d.ordersExecutor, event: split, args: { user }, fromBlock, toBlock }),
-    ]),
-  );
+  const topics = [HISTORY_EVENTS.map((name) => toEventSelector(getAbiItem({ abi: executorAbi, name }))), pad(user)];
+  const chunks = await mapLimit(ranges, 4, async ([fromBlock, toBlock]) => {
+    const raw = await client.request({
+      method: "eth_getLogs",
+      params: [{ address: d.ordersExecutor, topics, fromBlock: numberToHex(fromBlock), toBlock: numberToHex(toBlock) }],
+    });
+    return parseEventLogs({ abi: executorAbi, logs: raw.map((log) => formatLog(log)) });
+  });
+  const logs = chunks.flat();
 
   let savedTotal = 0n;
   let registeredBlock: bigint | null = null;
-  for (const [registrations, splits] of chunks) {
-    for (const log of splits) savedTotal += log.args.amount ?? 0n;
-    if (registeredBlock === null && registrations.length > 0) registeredBlock = registrations[0].blockNumber;
+  const actions: (Omit<RecentAction, "at"> & { block: bigint })[] = [];
+  for (const log of logs) {
+    const block = log.blockNumber ?? 0n;
+    const hash = log.transactionHash as Hex;
+    switch (log.eventName) {
+      case "UserRegistered":
+        if (registeredBlock === null) registeredBlock = block;
+        break;
+      case "SplitExecuted":
+        savedTotal += log.args.amount;
+        actions.push({ kind: "split", amount: log.args.amount, hash, block });
+        break;
+      case "ClaimExecuted": {
+        const inUsdc = log.args.token.toLowerCase() === d.usdc.toLowerCase();
+        actions.push({ kind: "claim", amount: inUsdc ? log.args.amount : null, hash, block });
+        break;
+      }
+      case "VaultReleased":
+        actions.push({ kind: "release", amount: null, hash, block });
+        break;
+    }
   }
-  const since =
-    registeredBlock === null ? null : Number((await client.getBlock({ blockNumber: registeredBlock })).timestamp);
-  return { savedTotal, since };
+
+  const latestActions = actions
+    .sort((a, b) => (a.block === b.block ? 0 : a.block > b.block ? -1 : 1))
+    .slice(0, RECENT_LIMIT);
+  const blocks = [
+    ...new Set([...latestActions.map((a) => a.block), ...(registeredBlock === null ? [] : [registeredBlock])]),
+  ];
+  const times = new Map(
+    await Promise.all(
+      blocks.map(
+        async (blockNumber) => [blockNumber, Number((await client.getBlock({ blockNumber })).timestamp)] as const,
+      ),
+    ),
+  );
+  return {
+    savedTotal,
+    since: registeredBlock === null ? null : (times.get(registeredBlock) ?? null),
+    recent: latestActions.map(({ block, ...action }) => ({ ...action, at: times.get(block) ?? 0 })),
+  };
 }
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
