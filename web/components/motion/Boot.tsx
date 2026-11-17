@@ -52,8 +52,13 @@ const EDGES: [NodeKey, NodeKey][] = [
 ];
 const PULSE: NodeKey[] = ["wallet", "origin", "reactive", "executor", "vault", "wallet"];
 
-/** Total length before the page shows, in seconds. Kept short: it plays once per tab, and any key or tap skips it. */
-const LENGTH = 3.4;
+// The timeline, in seconds. Slow enough to read every label and follow the pulse round the loop;
+// it plays once per tab, and any key or tap skips it.
+const LENGTH = 7; // total, before the page shows
+const LOG_START = 1.8; // first log line
+const LOG_STEP = 0.7; // between log lines
+const PULSE_START = 2.8;
+const PULSE_LENGTH = 3.2;
 
 /**
  * The boot sequence: a dot (your wallet), a crosshair, the reactive loop drawing itself out, a mono log
@@ -84,7 +89,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
   };
 
   useEffect(() => {
-    const timers = log.map((_, i) => setTimeout(() => setStep(i + 1), 1100 + i * 330));
+    const timers = log.map((_, i) => setTimeout(() => setStep(i + 1), (LOG_START + i * LOG_STEP) * 1000));
     const end = setTimeout(() => setVisible(false), LENGTH * 1000);
     const skip = () => setVisible(false);
     window.addEventListener("keydown", skip);
@@ -108,7 +113,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
           className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center overflow-hidden bg-canvas"
           onClick={() => setVisible(false)}
           exit={{ opacity: 0, scale: 1.04, filter: "blur(10px)" }}
-          transition={{ duration: 0.6, ease: EASE_OUT }}
+          transition={{ duration: 0.9, ease: EASE_OUT }}
         >
           <svg
             aria-hidden="true"
@@ -127,7 +132,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
               initial={{ pathLength: 0, opacity: 0 }}
               animate={{ pathLength: 1, opacity: 1 }}
               style={{ pathOffset: 0 }}
-              transition={{ duration: 0.7, delay: 0.3, ease: EASE_OUT }}
+              transition={{ duration: 1.2, delay: 0.4, ease: EASE_OUT }}
             />
             <motion.line
               x1={C.x}
@@ -138,7 +143,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
               strokeWidth={1}
               initial={{ pathLength: 0, opacity: 0 }}
               animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.4, ease: EASE_OUT }}
+              transition={{ duration: 1.2, delay: 0.6, ease: EASE_OUT }}
             />
 
             {/* the loop */}
@@ -153,7 +158,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
                 strokeWidth={1.2}
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 0.6, delay: 0.7 + i * 0.07, ease: EASE_OUT }}
+                transition={{ duration: 1, delay: 1.2 + i * 0.15, ease: EASE_OUT }}
               />
             ))}
 
@@ -167,7 +172,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   style={{ originX: `${x}px`, originY: `${y}px` }}
-                  transition={{ duration: 0.4, delay: center ? 0 : 1 + i * 0.06, ease: EASE_OUT }}
+                  transition={{ duration: 0.6, delay: center ? 0.1 : 1.6 + i * 0.12, ease: EASE_OUT }}
                 >
                   <circle cx={x} cy={y} r={center ? 14 : 11} className="fill-none stroke-hairline" />
                   <circle
@@ -199,7 +204,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
                 cx: PULSE.map((k) => NODES[k].x).concat(C.x),
                 cy: PULSE.map((k) => NODES[k].y).concat(C.y),
               }}
-              transition={{ duration: 1.8, delay: 1.3, ease: "easeInOut" }}
+              transition={{ duration: PULSE_LENGTH, delay: PULSE_START, ease: "easeInOut" }}
             />
           </svg>
 
@@ -213,7 +218,7 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
                 key={line}
                 initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                transition={{ duration: 0.3, ease: EASE_OUT }}
+                transition={{ duration: 0.5, ease: EASE_OUT }}
                 className={i === step - 1 ? "text-ink" : "text-ink-muted"}
               >
                 {i === step - 1 ? "> " : "  "}
@@ -229,12 +234,12 @@ export function Boot({ network, onDone }: { network: Network; onDone: () => void
               className="relative flex flex-col items-center gap-2 bg-canvas/70 px-6 py-3"
               initial={{ opacity: 0, filter: "blur(12px)", scale: 0.96 }}
               animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-              transition={{ duration: 0.7, ease: EASE_OUT }}
+              transition={{ duration: 1.1, ease: EASE_OUT }}
             >
               <span className="text-5xl font-normal text-ink md:text-display">
                 {/* inside the boot itself, the scramble may run */}
                 <BootContext.Provider value={true}>
-                  <Scramble text="Steward" duration={700} />
+                  <Scramble text="Steward" duration={1200} />
                 </BootContext.Provider>
               </span>
               <span className="font-mono text-sm uppercase text-ink-muted">Money rules that run themselves</span>

@@ -276,7 +276,7 @@ Write status as text plus symbol in mono: `(v) SUCCESS`, `(x) FAILED`, `(~) PEND
 
 | Piece | What it does | Timing |
 | --- | --- | --- |
-| **Boot sequence** | First visit per tab only. A dot (the user's wallet), a crosshair, then the reactive loop draws itself out to labelled nodes (origin chains, Rulebook, executor, vault) while a mono log ticks through what is happening. A Maya pulse runs the loop once, then the wordmark decodes in. Any key, tap or `[ SKIP ]` ends it. Wide screens draw the loop left to right, tall screens top to bottom. | 3.4s, exits in 0.6s |
+| **Boot sequence** | First visit per tab only. A dot (the user's wallet), a crosshair, then the reactive loop draws itself out to labelled nodes (origin chains, Rulebook, executor, vault) while a mono log ticks through what is happening. A Maya pulse runs the loop once, then the wordmark decodes in. Any key, tap or `[ SKIP ]` ends it. Wide screens draw the loop left to right, tall screens top to bottom. | 7s, exits in 0.9s |
 | **Card entrance** | Cards rise out of an 8px blur with a 7° tilt the first time they scroll into view, 80ms apart. The filter is removed once settled. | 750ms, `ease-settle` |
 | **Text scramble** (motif 5) | `// LABEL` headings and the boot wordmark decode from terminal punctuation (`!<>-_\/[]{}=+*^?#01`), settling left to right. Screen readers get the real text only. | 600ms |
 | **Odometer** (motif 6) | The vault balance and stat values roll each digit into place, right to left, on first view and whenever they change. | 900ms, 35ms per digit |
