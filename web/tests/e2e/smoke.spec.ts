@@ -71,6 +71,17 @@ test("Money map: sources as tabs, payments as a wheel, a picked payment links to
   await expect(map.getByText("Claim and secure is off.")).toBeVisible();
 });
 
+test("Money map: a More cue turns the wheel to payments off the arc", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/?preview=active");
+  const map = page.getByRole("region", { name: "// Where your money comes from" });
+  const below = map.getByText(/^More ↓ \d+$/);
+  await expect(below).toBeVisible();
+  await below.click();
+  // The wheel has turned down, so older payments are now above it.
+  await expect(map.getByText(/^More ↑ \d+$/)).toBeVisible();
+});
+
 test("Phones: a floating pill jumps between sections", async ({ page }, info) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/?preview=active");

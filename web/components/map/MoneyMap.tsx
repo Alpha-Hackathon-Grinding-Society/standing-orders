@@ -108,6 +108,11 @@ export function MoneyMap({
   // The wheel turns only when some payments are off the arc, above or below.
   const reach = layout ? Math.floor(layout.thetaMax / layout.dTheta) : Infinity;
   const turns = centerIndex > reach || items.length - 1 - centerIndex > reach;
+  // Payments past the clearly readable part of the arc, above and below where the wheel rests.
+  const readable = layout ? Math.floor((0.85 * layout.thetaMax) / layout.dTheta) : Infinity;
+  const restAt = centerIndex + rest;
+  const moreAbove = Math.max(0, restAt - readable);
+  const moreBelow = Math.max(0, items.length - 1 - restAt - readable);
 
   const pick = (index: number) => {
     if (index === selected) return;
@@ -184,7 +189,7 @@ export function MoneyMap({
 
       <div
         ref={canvasRef}
-        className="relative h-[max(30rem,66dvh)] overflow-hidden rounded-xl border border-hairline bg-canvas xl:h-auto xl:min-h-0 xl:flex-1"
+        className="relative h-[max(30rem,66dvh)] overflow-hidden rounded-xl select-none border border-hairline bg-canvas xl:h-auto xl:min-h-0 xl:flex-1"
       >
         {layout ? (
           <>
@@ -220,6 +225,24 @@ export function MoneyMap({
             </svg>
 
             <VaultLabel data={data} layout={layout} tokens={tokens.length} go={go} reduce={reduce} />
+
+            {/* Mouse cues that more payments wait off the arc; keyboard users have the arrow keys, Home and End. */}
+            {moreAbove > 0 ? (
+              <MoreButton
+                direction="up"
+                count={moreAbove}
+                style={{ right: 16, top: 12 }}
+                onClick={() => turnTo(rest - Math.min(moreAbove, readable))}
+              />
+            ) : null}
+            {moreBelow > 0 ? (
+              <MoreButton
+                direction="down"
+                count={moreBelow}
+                style={{ right: 16, bottom: 12 }}
+                onClick={() => turnTo(rest + Math.min(moreBelow, readable))}
+              />
+            ) : null}
 
             {layout.compact ? null : (
               <div
@@ -496,6 +519,32 @@ function SourceTabs({
         </button>
       ))}
     </div>
+  );
+}
+
+/** `MORE ↓ 4`: turns the wheel towards payments that are off the arc. */
+function MoreButton({
+  direction,
+  count,
+  style,
+  onClick,
+}: {
+  direction: "up" | "down";
+  count: number;
+  style: React.CSSProperties;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-hidden="true"
+      onClick={onClick}
+      className="absolute z-10 min-h-11 cursor-pointer rounded-md px-3 font-mono text-xs uppercase text-ink-muted transition-colors duration-150 hover:bg-surface-raised hover:text-ink"
+      style={style}
+    >
+      More {direction === "up" ? "↑" : "↓"} {count}
+    </button>
   );
 }
 
