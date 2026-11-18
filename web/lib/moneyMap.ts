@@ -293,3 +293,61 @@ export function inflowAmount(item: Inflow, key: SourceKey): string {
 export function inflowSource(key: SourceKey, item: Inflow): string {
   return key === "deposits" ? "You" : tinyAddress(item.from);
 }
+
+/** A fee in ETH with up to 8 places and no trailing zeros: `0.0000213 ETH`. */
+export function formatEth(wei: bigint): string {
+  const text = formatAmount(wei, 18, undefined, 8).replace(/\.?0+$/, "");
+  return `${text === "0" && wei > 0n ? "<0.00000001" : text} ETH`;
+}
+
+/** A whole number with the page's thin-space thousands: `34 000 000`. */
+export function formatCount(n: bigint | number): string {
+  return formatAmount(BigInt(n), 0, undefined, 0);
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** A block's time in UTC, the same for every visitor: `7 Oct 2026, 14:02 UTC`. */
+export function formatUtc(seconds: number): string {
+  const d = new Date(seconds * 1000);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${hh}:${mm} UTC`;
+}
+
+/**
+ * Where the payment panel sits in the canvas. Over the orb, stopping 16px short of the source cards so
+ * they stay clickable, when that leaves at least 300px; otherwise (phones, narrower canvases) over the
+ * whole drawing, until Close or Escape. `link` is the line from the picked payment, which the wheel
+ * brings to the middle, to the panel's edge.
+ */
+export function panelBox(layout: MapLayout): {
+  beside: boolean;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  link: { from: Pt; to: Pt } | null;
+} {
+  const room = layout.card.x - 32;
+  if (layout.compact || room < 300) {
+    return { beside: false, left: 8, top: 8, width: layout.w - 16, height: layout.h - 16, link: null };
+  }
+  const width = Math.min(400, room);
+  const y = layout.arcC.y;
+  return {
+    beside: true,
+    left: 16,
+    top: 16,
+    width,
+    height: layout.h - 32,
+    link: { from: { x: layout.leafX0, y }, to: { x: 16 + width, y } },
+  };
+}
+
+/** How the payment panel names the two ends of a payment, by source. */
+export function paymentEnds(key: SourceKey): { from: string; to: string } {
+  if (key === "income") return { from: "Paid by", to: "Paid to" };
+  if (key === "vesting") return { from: "Vesting", to: "Into" };
+  return { from: "Deposited by", to: "Into" };
+}

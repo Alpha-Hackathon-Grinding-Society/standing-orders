@@ -318,6 +318,9 @@ export type Inflow = {
   decimals: number;
   amount: bigint;
   hash: Hex;
+  /** Block the payment landed in, and its log's position in that block. */
+  block: number;
+  logIndex: number;
   /** Unix seconds of the block, or 0 if it could not be read. */
   at: number;
 };
@@ -387,7 +390,7 @@ export async function loadSources(
     return parseEventLogs({ abi, logs: raw.flat().map((log) => formatLog(log)) });
   });
 
-  type Raw = Omit<Inflow, "symbol" | "decimals" | "at"> & { block: bigint; index: number };
+  type Raw = Omit<Inflow, "symbol" | "decimals" | "at" | "block" | "logIndex"> & { block: bigint; index: number };
   const lists: Record<keyof MoneySources, Raw[]> = { income: [], vesting: [], deposits: [] };
   for (const log of chunks.flat()) {
     const hash = log.transactionHash as Hex;
@@ -441,16 +444,53 @@ export async function loadSources(
   );
 
   const finish = (items: Raw[]): Inflow[] =>
-    items.map(({ id, from, token, amount, hash, block }) => ({
+    items.map(({ id, from, token, amount, hash, block, index }) => ({
       id,
       from,
       token,
       amount,
       hash,
+      block: Number(block),
+      logIndex: index,
       ...tokenInfo.get(token.toLowerCase() as Address)!,
       at: times.get(block) ?? 0,
     }));
   return { income: finish(lists.income), vesting: finish(lists.vesting), deposits: finish(lists.deposits) };
+}
+
+/** What the money map's payment panel shows beyond the payment itself, read from its transaction. */
+export type PaymentDetails = {
+  status: "success" | "reverted";
+  /** Blocks on top of this one, counting it: 1 means just included. */
+  confirmations: bigint;
+  /** The account that signed the transaction, and the contract it called. */
+  signer: Address;
+  contract: Address | null;
+  nonce: number;
+  gasUsed: bigint;
+  /** Everything the signer paid, in wei: L2 execution plus Base's L1 data fee. */
+  fee: bigint;
+};
+
+/** One payment's transaction, receipt and the chain head, read on demand when the panel opens. */
+export async function loadPaymentDetails(key: NetworkKey, hash: Hex): Promise<PaymentDetails> {
+  const client = baseClient(NETWORKS[key]);
+  const [tx, receipt, head] = await Promise.all([
+    client.getTransaction({ hash }),
+    client.getTransactionReceipt({ hash }),
+    client.getBlockNumber(),
+  ]);
+  // OP-stack chains (Base) add the L1 data fee to the receipt.
+  const l1Fee = (receipt as { l1Fee?: bigint | null }).l1Fee ?? 0n;
+  return {
+    status: receipt.status,
+    confirmations: head - receipt.blockNumber + 1n,
+    signer: tx.from,
+    contract: tx.to,
+    nonce: tx.nonce,
+    gasUsed: receipt.gasUsed,
+    fee: receipt.gasUsed * receipt.effectiveGasPrice + l1Fee,
+  };
 }
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {

@@ -25,6 +25,7 @@ import {
   leafPoint,
   mapGroups,
   offsetBounds,
+  panelBox,
 } from "@/lib/moneyMap";
 import { NETWORKS, txUrl } from "@/lib/networks";
 import { USDC_DECIMALS } from "@/lib/setup";
@@ -32,6 +33,7 @@ import { useBooted } from "../motion/BootContext";
 import { ExternalLink, Label, StatusToken } from "../ui";
 import { ArcGuide, INTRO, MapDefs, RootArt, Spark, Trunks } from "./MapArt";
 import { GhostLine, type LeafEmphasis, LeafLabel, LeafLine } from "./MapWheel";
+import { PaymentPanel } from "./PaymentPanel";
 
 const WHEEL_SPRING = { type: "spring", stiffness: 300, damping: 34, mass: 1 } as const;
 /** Payments within this many of the middle carry comets: at most 13, plus the lit trunk. */
@@ -47,12 +49,15 @@ export function MoneyMap({
   data,
   sources,
   failed,
+  preview,
   now,
 }: {
   data: StewardData;
   sources: MoneySources | undefined;
   /** The payments could not be read. */
   failed: boolean;
+  /** Sample data: the payment panel shows sample transaction details instead of reading Base. */
+  preview: boolean;
   now: number;
 }) {
   const network = NETWORKS[data.network];
@@ -68,6 +73,8 @@ export function MoneyMap({
 
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // The payment panel: opened by clicking a payment or pressing Enter on it, put away with Escape.
+  const [detailOpen, setDetailOpen] = useState(false);
   const focusedIndex = items.findIndex((item) => item.id === focusedId);
   const focused = focusedIndex === -1 ? null : items[focusedIndex];
 
@@ -119,6 +126,7 @@ export function MoneyMap({
     setPicked(index);
     setFocusedId(null);
     setHoveredId(null);
+    setDetailOpen(false);
     target.current = 0;
     setRest(0);
     wheel.set(0);
@@ -153,6 +161,13 @@ export function MoneyMap({
     if (event.key in moves) {
       event.preventDefault();
       focusLeaf(moves[event.key]);
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      focusLeaf(current);
+      setDetailOpen(true);
+    } else if (event.key === "Escape" && detailOpen) {
+      event.preventDefault();
+      setDetailOpen(false);
     }
   };
 
@@ -165,6 +180,13 @@ export function MoneyMap({
   // (the orb, the rail) still scrolls the page on a phone.
   const listLeft = layout ? leafPoint(layout.thetaMax, layout.arcC, layout.arcR).x - 12 : 0;
   const fanBase = introDone ? 0.05 : INTRO.fan;
+
+  const panel = layout ? panelBox(layout) : null;
+  const showPanel = detailOpen && focused !== null && panel !== null;
+  const closePanel = () => {
+    setDetailOpen(false);
+    listRef.current?.focus();
+  };
 
   const emphasisOf = (id: string): LeafEmphasis =>
     id === focusedId ? "focus" : id === hoveredId ? "hover" : hoveredId ? "dim" : "rest";
@@ -222,6 +244,11 @@ export function MoneyMap({
                 </motion.g>
               </AnimatePresence>
               <Spark layout={layout} go={go} reduce={reduce} />
+              <AnimatePresence>
+                {showPanel && panel.link ? (
+                  <PanelLink key="link" from={panel.link.from} to={panel.link.to} reduce={reduce} />
+                ) : null}
+              </AnimatePresence>
             </svg>
 
             <VaultLabel data={data} layout={layout} tokens={tokens.length} go={go} reduce={reduce} />
@@ -310,7 +337,10 @@ export function MoneyMap({
                         emphasis={emphasisOf(item.id)}
                         delay={go ? fanBase + drawOrder(i, centerIndex) * INTRO.fanStep : null}
                         reduce={reduce}
-                        onPick={() => focusLeaf(i)}
+                        onPick={() => {
+                          focusLeaf(i);
+                          setDetailOpen(true);
+                        }}
                         onHover={(hovering) => setHoveredId(hovering ? item.id : null)}
                       />
                     ))
@@ -318,6 +348,22 @@ export function MoneyMap({
                 </motion.div>
               </AnimatePresence>
             </div>
+
+            <AnimatePresence>
+              {showPanel ? (
+                <PaymentPanel
+                  key="panel"
+                  item={focused}
+                  source={group.key}
+                  data={data}
+                  network={network}
+                  preview={preview}
+                  now={now}
+                  style={{ left: panel.left, top: panel.top, width: panel.width, height: panel.height }}
+                  onClose={closePanel}
+                />
+              ) : null}
+            </AnimatePresence>
           </>
         ) : null}
       </div>
@@ -338,7 +384,7 @@ export function MoneyMap({
             <ExternalLink href={txUrl(network.baseExplorer, focused.hash)}>{shortAddress(focused.hash)}</ExternalLink>
           </>
         ) : items.length > 0 ? (
-          "Pick a payment to see its transaction. Scroll, drag, tap or use the arrow keys to turn the wheel."
+          "Pick a payment to open its full transaction. Scroll, drag, tap or use the arrow keys to turn the wheel."
         ) : null}
       </p>
     </section>
@@ -519,6 +565,57 @@ function SourceTabs({
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * The line from the picked payment into the payment panel: it draws from the wheel to the panel's
+ * edge, a node lights where it arrives, and a comet keeps running along it while the panel is open.
+ */
+function PanelLink({
+  from,
+  to,
+  reduce,
+}: {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  reduce: boolean;
+}) {
+  const d = `M${from.x},${from.y} L${to.x},${to.y}`;
+  return (
+    <motion.g initial={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.2 } }}>
+      <motion.path
+        d={d}
+        fill="none"
+        className="stroke-maya"
+        strokeWidth={1.25}
+        opacity={0.8}
+        initial={reduce ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.45, delay: 0.25, ease: EASE_OUT }}
+      />
+      {reduce ? null : (
+        <path
+          d={d}
+          pathLength={1}
+          fill="none"
+          className="map-comet stroke-maya"
+          strokeWidth={1.75}
+          filter="url(#map-glow-sm)"
+          style={{ "--dur": "2.2s", "--delay": "0.7s" } as React.CSSProperties}
+        />
+      )}
+      <motion.circle
+        cx={to.x}
+        cy={to.y}
+        r={3.5}
+        className="fill-maya"
+        filter="url(#map-glow-sm)"
+        initial={reduce ? false : { scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8, delay: 0.65 }}
+      />
+    </motion.g>
   );
 }
 

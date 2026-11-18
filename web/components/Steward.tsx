@@ -202,7 +202,7 @@ function Body({
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start">
       <div className="xl:sticky xl:top-6 xl:h-[calc(100dvh-3rem)] xl:max-h-[64rem]">
-        <MoneyMap data={data} sources={sources} failed={sourcesFailed} now={now} />
+        <MoneyMap data={data} sources={sources} failed={sourcesFailed} preview={preview} now={now} />
       </div>
       <div className="flex min-w-0 flex-col gap-8">
         <div className="flex flex-col gap-4">

@@ -1,7 +1,7 @@
 // Labelled sample data for `?preview=<state>`: lets anyone (and the Playwright smoke test) see every
 // Guardian state without a wallet. The page always shows a PREVIEW banner when this is in use.
 import type { Address } from "viem";
-import type { Inflow, MoneySources, RecentAction, StewardData, StewardHistory } from "./data";
+import type { Inflow, MoneySources, PaymentDetails, RecentAction, StewardData, StewardHistory } from "./data";
 
 export const PREVIEW_STATES = ["active", "warning", "released", "paused", "lowreact", "novault"] as const;
 export type PreviewState = (typeof PREVIEW_STATES)[number];
@@ -137,7 +137,21 @@ export function previewSources(state: PreviewState, now: number): MoneySources {
     daysAgo: number,
   ): Inflow => {
     const hash = `0x${(i + 16).toString(16).padStart(2, "0").repeat(32)}` as const;
-    return { id: `${hash}:0`, from, token, symbol, decimals, amount, hash, at: now - daysAgo * DAY };
+    // Base Sepolia makes a block every 2 seconds; the sample's head is block 34,000,000.
+    const block = PREVIEW_HEAD - Math.round((daysAgo * DAY) / 2);
+    const logIndex = (i * 7) % 23;
+    return {
+      id: `${hash}:${logIndex}`,
+      from,
+      token,
+      symbol,
+      decimals,
+      amount,
+      hash,
+      block,
+      logIndex,
+      at: now - daysAgo * DAY,
+    };
   };
   const usdc = (whole: number) => BigInt(whole) * 1_000_000n;
   const income = [
@@ -160,4 +174,23 @@ export function previewSources(state: PreviewState, now: number): MoneySources {
     inflow(22, USER, USDC, "USDC", 6, usdc(50), 40),
   ];
   return { income, vesting: [], deposits };
+}
+
+const PREVIEW_HEAD = 34_000_000;
+
+/**
+ * Sample transaction details for a preview payment, so the payment panel can be seen without a
+ * wallet. Derived from the payment, so each one reads differently and the same one reads the same.
+ */
+export function previewPaymentDetails(item: Inflow): PaymentDetails {
+  const seed = item.logIndex + 1;
+  return {
+    status: "success",
+    confirmations: BigInt(PREVIEW_HEAD - item.block + 1),
+    signer: item.from,
+    contract: item.token,
+    nonce: 40 + seed,
+    gasUsed: BigInt(51_000 + seed * 137),
+    fee: BigInt(2_100_000_000 + seed * 13_000_000) * 1_000n,
+  };
 }

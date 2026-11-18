@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { Inflow, MoneySources } from "@/lib/data";
 import {
   ITEM_PITCH,
+  formatCount,
+  formatEth,
+  formatUtc,
+  panelBox,
+  paymentEnds,
   centerIndexOf,
   computeLayout,
   cometTiming,
@@ -153,6 +158,8 @@ describe("labels", () => {
     decimals: 6,
     amount: 100_000_000n,
     hash: "0x1",
+    block: 1,
+    logIndex: 0,
     at: 0,
     ...over,
   });
@@ -209,5 +216,49 @@ describe("mapGroups", () => {
       "Reading payments...",
       "Reading payments...",
     ]);
+  });
+});
+
+describe("payment panel", () => {
+  it("fees read in ETH without trailing zeros, and never as a bare 0", () => {
+    expect(formatEth(21_300_000_000_000n)).toBe("0.0000213 ETH");
+    expect(formatEth(1_500_000_000_000_000n)).toBe("0.0015 ETH");
+    expect(formatEth(3n)).toBe("<0.00000001 ETH");
+    expect(formatEth(0n)).toBe("0 ETH");
+  });
+
+  it("counts and block numbers use the thin-space thousands", () => {
+    expect(formatCount(34_000_000)).toBe("34 000 000");
+    expect(formatCount(7n)).toBe("7");
+  });
+
+  it("block times read in UTC for every visitor", () => {
+    expect(formatUtc(Date.UTC(2026, 9, 7, 14, 2) / 1000)).toBe("7 Oct 2026, 14:02 UTC");
+  });
+
+  it("beside the wheel, the panel stops short of the source cards so they stay clickable", () => {
+    const layout = computeLayout(905, 780, 3, 0);
+    const box = panelBox(layout);
+    expect(box.beside).toBe(true);
+    expect(box.left + box.width).toBeLessThanOrEqual(layout.card.x - 16);
+    expect(box.width).toBeGreaterThanOrEqual(300);
+    expect(box.link?.to.x).toBe(box.left + box.width);
+  });
+
+  it("without 300px left of the cards, or on a phone, the panel covers the drawing", () => {
+    for (const [w, h] of [
+      [800, 680],
+      [340, 480],
+    ]) {
+      const box = panelBox(computeLayout(w, h, 3, 0));
+      expect(box.beside).toBe(false);
+      expect(box.width).toBe(w - 16);
+      expect(box.link).toBeNull();
+    }
+  });
+
+  it("each source names the two ends of a payment", () => {
+    expect(paymentEnds("income")).toEqual({ from: "Paid by", to: "Paid to" });
+    expect(paymentEnds("deposits")).toEqual({ from: "Deposited by", to: "Into" });
   });
 });

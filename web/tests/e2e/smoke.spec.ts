@@ -54,11 +54,29 @@ test("Money map: sources as tabs, payments as a wheel, a picked payment links to
   await expect(map.getByRole("link", { name: /0x101010/ })).toHaveAttribute("href", /\/tx\/0x1010/);
   await page.screenshot({ path: info.outputPath("map.png") });
 
+  // Enter (or a click) opens the payment in full: hash, both ends, status, then Close puts it away.
+  await wheel.press("Enter");
+  const panel = map.getByRole("region", { name: "Payment details" });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText(`0x${"10".repeat(32)}`)).toBeVisible();
+  await expect(panel.getByText("(v) CONFIRMED")).toBeVisible();
+  await expect(panel.getByRole("link", { name: /0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502/ })).toBeVisible();
+  await expect(panel.getByText(/^#\d/)).toBeVisible();
+  await expect(panel.getByText(/ETH$/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("map-payment.png") });
+  await panel.getByRole("button", { name: "[ Close ]" }).click();
+  await expect(panel).toHaveCount(0);
+  await expect(wheel).toBeFocused();
+
   // The keyboard turns the wheel one payment at a time, and a click picks one.
   await wheel.press("ArrowDown");
   await expect(wheel.getByRole("option", { selected: true })).toContainText("250.00 USDC");
   await wheel.getByRole("option").nth(0).click();
   await expect(wheel.getByRole("option", { selected: true })).toContainText("2d");
+  // A click opens the panel too; on narrower canvases it covers the cards until Escape puts it away.
+  await expect(map.getByRole("region", { name: "Payment details" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(map.getByRole("region", { name: "Payment details" })).toHaveCount(0);
 
   await map.getByRole("tab", { name: /Deposits/ }).click();
   const deposits = map.getByRole("listbox", { name: "Payments from deposits" });

@@ -306,6 +306,13 @@ html {
     opacity: 0;
   }
 }
+/* The payment panel's top edge: a Maya line fading out, where the connector from the wheel arrives. */
+.map-detail-edge {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-maya) 85%);
+}
 .map-card-ring {
   box-shadow:
     inset 0 0 12px color-mix(in srgb, var(--color-maya) 18%, transparent),
