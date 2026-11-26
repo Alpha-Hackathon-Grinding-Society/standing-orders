@@ -115,6 +115,9 @@ This file holds the exact Reactive APIs Steward uses, with sources. When memory,
 
 ## 9. Addresses (rechecked 2026-11-13 against docs commit `0ac3064`)
 
+- **Mainnet recheck, 2026-11-26 (Phase 4):** https://dev.reactive.network/origins-and-destinations lists Base (8453) callback proxy `0xCc780DdE33f56f55dE778D42c930959374a4a068` and Arbitrum (42161) `0xaee8d2deBaB5bE353bfec167C58a549923892e11`, both ✅ as origin and destination alongside Reactive (1597). Both match `.env.example`. The Base proxy has code on-chain (`DeployBase` requires it).
+- **REACT on Base** is `0xeDAcC73AE9f73235934f72a43388404E4a2C4A24`, the `sourceChainToken` in the official Token Portal's code (`portal.reactive.network`); the portal bridges it to native REACT 1:1. It checks the wallet's ETH on the *currently connected* chain, so connect on Base and reload before bridging.
+
 | Network | Chain ID | Callback proxy | RPC | Explorer |
 | --- | --- | --- | --- | --- |
 | Reactive mainnet | 1597 | system `0x8888888888888888888888888888888888888888` | https://mainnet-rpc.rnk.dev/ | https://reactscan.net |
