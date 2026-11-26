@@ -270,6 +270,43 @@ Write status as text plus symbol in mono: `(v) SUCCESS`, `(x) FAILED`, `(~) PEND
 7. **Dot-grid hero with a soft blue glow** (one per app, landing page only).
 8. **Hairline section dividers** across the full container width.
 
+## Motion
+
+*Our addition, built for Steward on 2026-11-17.* Motion follows the same rule as colour: it means something. Anything that moves on its own says "this is live"; entrances happen once; nothing loops for decoration.
+
+| Piece | What it does | Timing |
+| --- | --- | --- |
+| **Boot sequence** | First visit per tab only. A dot (the user's wallet), a crosshair, then the reactive loop draws itself out to labelled nodes (origin chains, Rulebook, executor, vault) while a mono log ticks through what is happening. A Maya pulse runs the loop once, then the wordmark decodes in. Any key, tap or `[ SKIP ]` ends it. Wide screens draw the loop left to right, tall screens top to bottom. | 7s, exits in 0.9s |
+| **Card entrance** | Cards rise out of an 8px blur with a 7° tilt the first time they scroll into view, 80ms apart. The filter is removed once settled. | 750ms, `ease-settle` |
+| **Text scramble** (motif 5) | `// LABEL` headings and the boot wordmark decode from terminal punctuation (`!<>-_\/[]{}=+*^?#01`), settling left to right. Screen readers get the real text only. | 600ms |
+| **Odometer** (motif 6) | The vault balance and stat values roll each digit into place, right to left, on first view and whenever they change. | 900ms, 35ms per digit |
+| **Loop pulse** | In `// THE LOOP`, a Maya dot runs each wire in turn and lights the stop it reaches. It stops, with `[!] PAUSED` or `(x) OUT OF REACT` beside it, when the loop cannot run. | 3.6s cycle |
+| **Live square** | The green square in the "Built on Reactive" badge pings softly. | 1s ping |
+| **Brackets** | `[ ACTION ]` brackets open by 4px on hover and keyboard focus. | 300ms |
+| **Shimmer** | A value still being read is a slow sweep over the input surface, never "...". | 1.6s |
+
+- **Easing:** colour, border and background changes keep `ease-reactive` (`cubic-bezier(0.4, 0, 0.2, 1)`). Entrances and rolling digits use `ease-settle` (`cubic-bezier(0.22, 1, 0.36, 1)`): fast out, long settle.
+- **Reduced motion:** when the visitor asks for it, the boot sequence does not play, cards and numbers appear in their final state, scrambles show the real text at once, and every CSS animation ends immediately.
+- **No smooth-scroll library.** Native scrolling stays, so the page behaves in wallet in-app browsers. In-page jumps scroll smoothly only when motion is allowed.
+
+## Money map
+
+Two thirds of the dashboard on wide screens (1280px and up), on the left and held in view while the cards scroll in the right third; narrower screens stack it, two thirds of the screen tall, above the cards. From an 860px-wide canvas the orb, cards and labels grow. It answers "where does my money come from?" with real on-chain payments only: USDC `Transfer` from a listed income sender to the owner, the executor's `ClaimExecuted`, and the vault's owner `Deposited`.
+
+| Part | What it is |
+| --- | --- |
+| **Vault orb** | The vault: a Royal sphere with a Maya highlight, two counter-rotating rings of ticks and dots (48s and 72s), a soft halo disc and two Maya ripples. Its balance sits above it, the number of tokens received below. |
+| **Source rail** | Three cards, one per source: Income (Pay yourself first), Vesting (Claim and secure), Deposits (by hand). Each shows its ASCII mark, payment count, tokens and name. The picked card has a Maya ring that slides between cards. On phones the rail becomes a row of three tabs above the drawing. |
+| **Fan and wheel** | One line per payment from the picked card to a dot on an arc, with the payment's source, age, amount and token beside it. Payments near the top and bottom fade and shrink like a picker wheel. It opens with the newest payment in the clearly readable part of the arc. Mouse wheel, a mouse drag (with a throw) or the arrow keys turn it; at either end the mouse wheel scrolls the page again. Touch is left to the page so a finger never gets trapped; on phones, tapping a payment brings it to the middle. |
+| **Picked payment** | Clicking a payment (or Enter on it) centres it, lights its line and opens the **payment panel**: a glass panel over the orb, stopping short of the source cards (over the whole drawing on phones and narrower canvases). A Maya line draws from the payment's dot into the panel and keeps a comet running. The panel rises out of blur, its rows arrive in a stagger, the amount rolls in like the odometer and the full hash decodes. It shows status and confirmations, the full hash with `[ Copy ]`, both ends as full addresses, the token contract, block with UTC time, fee and gas, and the log position, read from Base when it opens. Picking another payment swaps the rows; `[ Close ]` or Escape puts it away. |
+
+- **Colour roles:** lines, dots, comets and the selection ring are Maya (what is live). Resting trunks are 50% white at low opacity. The orb is the only Royal object in the drawing. Glows (the orb, the selection ring, the spark, small dot glows) are this one panel's exception to "no shadows", as the vault card's soft glow is.
+- **Motion:** on first view the halo opens, the orb springs in, trunks draw, cards slide in, the spark pops at the picked card, then payment lines draw from the middle outwards and each dot pops as its line arrives (about 2.1s). After that, comets run the lit lines every few seconds, the orb breathes and dots twinkle. Switching sources fades the old fan and draws the new one.
+- **Reduced motion:** everything renders in its final place, with no comets, ripples, rotation, breathing or twinkles. The wheel turns without a spring.
+- **Amounts:** what went into the vault (a claim, a deposit) reads `+50.00 USDC`. Income reads without the plus, because it is paid to the wallet and Pay yourself first moves only a share of it on; the picked-payment line says so.
+- **Addresses:** payment labels shorten addresses to `0x1501…0502` (first 6, last 4), an exception to the 6–8 + 6–8 rule because the wheel's labels are 140–160px wide. The full address is in the label's tooltip and in the picked-payment line.
+- **Accessibility:** the drawing is `aria-hidden`; the sources are a `tablist` (arrow keys, Home, End; each tab `aria-controls` the list) and the payments a `listbox` of `option`s whose active option is the one at the middle until one is picked, announced through a polite live region. A failed read shows `(x) FAILED` with what to do.
+
 ## Applying it to our three apps
 
 ### Reflex (Every Second Counts)

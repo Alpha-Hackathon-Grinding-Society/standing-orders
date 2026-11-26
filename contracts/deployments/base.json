@@ -1,0 +1,9 @@
+{
+  "callbackProxy": "0xCc780DdE33f56f55dE778D42c930959374a4a068",
+  "chainId": 8453,
+  "deployBlock": 62333443,
+  "heartbeat": "0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447",
+  "ordersExecutor": "0xEaA3CB8cdE5d079CC6da775d21517F7770712036",
+  "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "vaultFactory": "0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686"
+}

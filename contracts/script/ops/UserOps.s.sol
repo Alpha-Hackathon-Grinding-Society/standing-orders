@@ -3,7 +3,9 @@ pragma solidity ^0.8.29;
 
 import {console2} from "forge-std/Script.sol";
 import {StewardScript} from "../StewardScript.sol";
+import {ISystemContract} from "@reactive/src/interfaces/ISystemContract.sol";
 import {Rulebook} from "../../src/Rulebook.sol";
+import {ReactiveConstants} from "../../src/libraries/ReactiveConstants.sol";
 
 // One script per user action (U-5). Base-side ones run against BASE_SEPOLIA_RPC / BASE_RPC, Reactive-side ones
 // against LASNA_RPC / REACTIVE_RPC. Every Makefile `ops-*` target names the contract with --tc.
@@ -118,6 +120,21 @@ contract TopUpReact is StewardScript {
         (bool ok,) = address(rulebook).call{value: vm.envOr("TOP_UP_WEI", uint256(1 ether))}("");
         require(ok, "top-up failed");
         rulebook.coverDebt();
+        vm.stopBroadcast();
+    }
+}
+
+/// @notice Sends REACT left in your Rulebook back to your wallet, after paying its debt. Use it once the Guardian has
+///         released (the Rulebook has stopped), or to retire a test Rulebook.
+/// @dev Env: WITHDRAW_REACT_WEI [everything left after debt]. RULEBOOK [yours, from deployments].
+contract WithdrawReact is StewardScript {
+    function run() external {
+        Rulebook target = Rulebook(payable(vm.envOr("RULEBOOK", address(_rulebook()))));
+        uint256 debt = ISystemContract(payable(ReactiveConstants.SYSTEM)).debt(address(target));
+        uint256 left = address(target).balance > debt ? address(target).balance - debt : 0;
+        uint256 amount = vm.envOr("WITHDRAW_REACT_WEI", left);
+        vm.startBroadcast(_key());
+        target.withdrawReact(amount);
         vm.stopBroadcast();
     }
 }

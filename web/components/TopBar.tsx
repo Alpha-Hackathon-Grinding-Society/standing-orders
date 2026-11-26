@@ -57,7 +57,10 @@ export function TopBar({ network, onNetwork, preview }: Props) {
           rel="noopener noreferrer"
           className="flex min-h-11 items-center gap-2 rounded-md border border-hairline px-3 text-ink-secondary transition-colors duration-300 ease-reactive hover:text-white"
         >
-          <span aria-hidden="true" className="inline-block size-2 bg-success" />
+          <span aria-hidden="true" className="relative inline-flex size-2">
+            <span className="absolute inline-flex size-full animate-ping bg-success opacity-60" />
+            <span className="relative inline-block size-2 bg-success" />
+          </span>
           Built on Reactive <span aria-hidden="true">↗</span>
           <span className="sr-only">(opens reactive.network in a new tab)</span>
         </a>

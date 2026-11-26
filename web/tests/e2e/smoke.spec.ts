@@ -13,16 +13,101 @@ test("without a wallet, the page invites a connection", async ({ page }) => {
 test("Active: vault balance, green state, countdown to warning and I'm alive", async ({ page }, info) => {
   await page.goto("/?preview=active");
   await expect(page.getByRole("alert").getByText("[!] PREVIEW")).toBeVisible();
-  await expect(page.getByText("145.50", { exact: true })).toBeVisible();
+  const vault = page.getByRole("region", { name: "// Vault balance" });
+  await expect(vault.getByText("145.50", { exact: true })).toBeVisible();
   await expect(page.getByText("(v) ACTIVE")).toBeVisible();
-  await expect(page.getByText(/^87d \d\dh until warning$/)).toBeVisible();
+  // 87 days left at first render; the countdown ticks, so a second later it reads 86d 23h.
+  await expect(page.getByText(/^8[67]d \d\dh until warning$/)).toBeVisible();
   await expect(page.getByRole("button", { name: "[ I'm alive ]" })).toBeVisible();
   for (const title of ["Pay yourself first", "Claim and secure", "Guardian"]) {
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: "[ Pause all ]" })).toBeVisible();
   await expect(page.getByRole("button", { name: "[ Withdraw ]" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Summary" }).locator("dl > div")).toHaveCount(4);
+  await expect(page.getByText("41 days", { exact: true })).toBeVisible();
+  await expect(page.getByText("from Pay yourself first")).toBeVisible();
+  const recent = page.getByRole("region", { name: "// Recent automatic actions" });
+  await expect(recent.getByRole("listitem")).toHaveCount(3);
+  await expect(recent.getByText("+20.00 USDC")).toBeVisible();
   await page.screenshot({ path: info.outputPath("active.png"), fullPage: true });
+});
+
+test("Money map: sources as tabs, payments as a wheel, a picked payment links to its transaction", async ({
+  page,
+}, info) => {
+  await page.goto("/?preview=active");
+  const map = page.getByRole("region", { name: "// Where your money comes from" });
+  const tabs = map.getByRole("tab");
+  await expect(tabs).toHaveCount(3);
+  await expect(map.getByRole("tab", { name: /Income/ })).toHaveAttribute("aria-selected", "true");
+
+  const wheel = map.getByRole("listbox", { name: "Payments from income" });
+  await expect(wheel.getByRole("option")).toHaveCount(12);
+  // The newest payment opens in view; Home picks it. Income is paid to the wallet, so no plus sign.
+  await wheel.focus();
+  await wheel.press("Home");
+  await expect(wheel.getByRole("option", { selected: true })).toContainText("100.00 USDC");
+  await expect(
+    map.getByText(/paid to you by 0x1501D3\.\.\.9Cfb0502, 2 days ago\. Pay yourself first saves 20%/),
+  ).toBeVisible();
+  await expect(map.getByRole("link", { name: /0x101010/ })).toHaveAttribute("href", /\/tx\/0x1010/);
+  await page.screenshot({ path: info.outputPath("map.png") });
+
+  // Enter (or a click) opens the payment in full: hash, both ends, status, then Close puts it away.
+  await wheel.press("Enter");
+  const panel = map.getByRole("region", { name: "Payment details" });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText(`0x${"10".repeat(32)}`)).toBeVisible();
+  await expect(panel.getByText("(v) CONFIRMED")).toBeVisible();
+  await expect(panel.getByRole("link", { name: /0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502/ })).toBeVisible();
+  await expect(panel.getByText(/^#\d/)).toBeVisible();
+  await expect(panel.getByText(/ETH$/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("map-payment.png") });
+  await panel.getByRole("button", { name: "[ Close ]" }).click();
+  await expect(panel).toHaveCount(0);
+  await expect(wheel).toBeFocused();
+
+  // The keyboard turns the wheel one payment at a time, and a click picks one.
+  await wheel.press("ArrowDown");
+  await expect(wheel.getByRole("option", { selected: true })).toContainText("250.00 USDC");
+  await wheel.getByRole("option").nth(0).click();
+  await expect(wheel.getByRole("option", { selected: true })).toContainText("2d");
+  // A click opens the panel too; on narrower canvases it covers the cards until Escape puts it away.
+  await expect(map.getByRole("region", { name: "Payment details" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(map.getByRole("region", { name: "Payment details" })).toHaveCount(0);
+
+  await map.getByRole("tab", { name: /Deposits/ }).click();
+  const deposits = map.getByRole("listbox", { name: "Payments from deposits" });
+  await expect(deposits.getByRole("option")).toHaveCount(3);
+  for (const amount of ["+0.0500 WETH", "+0.0020 cbBTC", "+50.00 USDC"]) {
+    await expect(deposits.getByText(amount)).toBeVisible();
+  }
+
+  await map.getByRole("tab", { name: /Vesting/ }).click();
+  await expect(map.getByText("Claim and secure is off.")).toBeVisible();
+});
+
+test("Money map: a More cue turns the wheel to payments off the arc", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/?preview=active");
+  const map = page.getByRole("region", { name: "// Where your money comes from" });
+  const below = map.getByText(/^More ↓ \d+$/);
+  await expect(below).toBeVisible();
+  await below.click();
+  // The wheel has turned down, so older payments are now above it.
+  await expect(map.getByText(/^More ↑ \d+$/)).toBeVisible();
+});
+
+test("Phones: a floating pill jumps between sections", async ({ page }, info) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/?preview=active");
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  await expect(nav).toBeVisible();
+  await nav.getByRole("link", { name: "Controls" }).click();
+  await expect(page).toHaveURL(/#controls-title$/);
+  await page.screenshot({ path: info.outputPath("phone.png") });
 });
 
 test("Warning: amber state and a countdown to release", async ({ page }, info) => {
@@ -36,12 +121,14 @@ test("Released: final state, no I'm alive", async ({ page }, info) => {
   await page.goto("/?preview=released");
   await expect(page.getByText("(v) RELEASED")).toBeVisible();
   await expect(page.getByRole("button", { name: "[ I'm alive ]" })).toHaveCount(0);
+  await expect(page.getByText("all to beneficiary")).toBeVisible();
   await page.screenshot({ path: info.outputPath("released.png"), fullPage: true });
 });
 
 test("Paused: rules show PAUSED and Unpause replaces Pause all", async ({ page }) => {
   await page.goto("/?preview=paused");
-  await expect(page.getByText("[!] PAUSED")).toBeVisible();
+  await expect(page.getByRole("region", { name: "// Controls" }).getByText("[!] PAUSED")).toBeVisible();
+  await expect(page.getByRole("region", { name: "// The loop" }).getByText("[!] PAUSED")).toBeVisible();
   // Pay yourself first and Guardian are on, so they read PAUSED; Claim and secure is off in this sample.
   await expect(page.getByText("[ PAUSED ]")).toHaveCount(2);
   await expect(page.getByText("[ OFF ]")).toHaveCount(1);

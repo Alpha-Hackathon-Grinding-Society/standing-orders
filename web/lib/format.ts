@@ -24,6 +24,16 @@ export function formatAmount(raw: bigint, decimals: number, symbol?: string, fra
   return symbol ? `${text} ${symbol}` : text;
 }
 
+/**
+ * The whole part and the fraction of an amount, for stats that set the cents in a quieter colour.
+ * `amountParts(145_500_000n, 6)` → `["145", ".50"]`.
+ */
+export function amountParts(raw: bigint, decimals: number, fractionDigits = 2): [string, string] {
+  const text = formatAmount(raw, decimals, undefined, fractionDigits);
+  const dot = text.indexOf(".");
+  return dot === -1 ? [text, ""] : [text.slice(0, dot), text.slice(dot)];
+}
+
 function fraction(remainder: bigint, decimals: number, digits: number): string {
   const padded = remainder.toString().padStart(decimals, "0");
   return "." + (padded + "0".repeat(digits)).slice(0, digits);

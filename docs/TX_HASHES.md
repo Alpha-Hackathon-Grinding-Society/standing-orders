@@ -4,6 +4,29 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
+## Phase 4: mainnet vault, Base ↔ Reactive mainnet (2026-11-26)
+
+The user's own wallet `0x810fCBF8A695Ffa0e4480207c667995139F33276` set up Steward from the page and signed every step; no key for it exists on this machine. Shared contracts were deployed by the PC wallet `0x1501…0502`. Callback proxy `0xCc780DdE33f56f55dE778D42c930959374a4a068` rechecked on Reactive's Origins and Destinations page the same day. Settings: 20% of USDC from the listed sender (the user's second account, Steward Payer `0x69Dfdc4f7B27Bbc167C43f7B86A94b318dFA32c9`), at most 5 USDC per 30 days; permit budget 5 USDC; Claim and secure off; Guardian 90 d / 14 d, checked hourly, watching Base and Arbitrum, beneficiary `0x09440538472AaE45AE7e2f509dFf6d23F4b01A08`; `Cron1000`; Rulebook funded with 30 REACT.
+
+### Deployments (`contracts/deployments/base.json`, `rulebook-reactive.json`)
+
+| Step | Network | Tx | Result |
+| --- | --- | --- | --- |
+| VaultFactory (deploys OrdersExecutor) | Base | [0xf1aa9dcd…3104](https://basescan.org/tx/0xf1aa9dcdffa6df68d919654b6f732dfd4ee41f4e78649f786389ea8d62b43104) | Factory `0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686`, executor `0xEaA3CB8cdE5d079CC6da775d21517F7770712036` |
+| Heartbeat | Base | [0xffa5f127…977e](https://basescan.org/tx/0xffa5f1276c4e2a317bd25eec9e8e0424fc28713eec6d0a8ee5f538b6294b977e) | `0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447` |
+| Executor callback float | Base | [0x1689cc8f…78b3](https://basescan.org/tx/0x1689cc8f944092c82443e3d73ae1e30b36f9378de1f6bf64d1efcf15055178b3) | 0.00015 ETH |
+| Rulebook deploy (signed on the page) | Reactive | [0x184c6be0…10ad](https://reactscan.net/tx/0x184c6be05f99adcd7504726625a9509dbb4c18e4882c8c4dc6c7d3d264ef10ad) | Rulebook `0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a`, 30 REACT |
+| Permit + createVault (signed on the page) | Base | [0x1977fc16…5a3d](https://basescan.org/tx/0x1977fc164158bb78d7914caca6233073c56927fa37ef0f7f90e22fcba2a65a3d) | Vault `0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75`, `UserRegistered`, allowance 5 USDC |
+| Guardian activity from the setup | Reactive | [0x3e6fa50e…fd2a](https://reactscan.net/tx/0x3e6fa50e909f4531dc03fb0de1aee6d6b3d2c9b1a320ecb6d4fc9b3179bffd2a) | `ActivityRecorded` on Base |
+
+### First real Rule 1 split (1 USDC from the listed sender → 0.20 USDC saved, 7 Base blocks ≈ 14 s from payment to vault)
+
+| Step | Network | Tx | Result |
+| --- | --- | --- | --- |
+| Origin: 1 USDC, Steward Payer → user | Base | [0xe98c0af1…cd86](https://basescan.org/tx/0xe98c0af12daabde1f1bc4908d79e452e4ef9d81e2e124adf654034a6d70ccd86) | USDC `Transfer`, block 62,344,797 |
+| Reactive: Rulebook reacts | Reactive | [0xf32c83d3…8b81](https://reactscan.net/tx/0xf32c83d342bdd748710f03576c23986b8d4dd9bd521729e1e19074b022558b81) | `SplitRequested`, `originTxHash` = the origin tx above, amount 0.20 USDC, nonce 1 |
+| Callback: executor moves the share | Base | [0x95f8b3c1…3eb0](https://basescan.org/tx/0x95f8b3c1e0d4498a2e86b215612d4f69790cd9ce27d7392237e67a96eb383eb0) | `SplitExecuted`, 0.20 USDC into the vault, block 62,344,804 |
+
 ## Phase 5: a vault set up end to end from the page (2026-11-16)
 
 A second MetaMask mobile account, `0xc8180E32107C82E84Ea8a1256Fab39cC616bf0b7`, with no vault and no key on this machine, set up Steward from the Next.js page (`web/`, served on the LAN) and signed every step there. Settings: 20% of USDC from the listed sender `0x1501…0502`, at most 25 USDC per 30 days; permit budget 100 USDC; Claim and secure off; Guardian 90 d / 14 d with beneficiary `0x810f…3276`; `Cron1000`; Rulebook funded with 0.1 lREACT. The account was funded beforehand from the PC wallet with 0.5 lREACT ([0x6ff632f4…ee8c](https://lasna.reactscan.net/tx/0x6ff632f4caf22266676d536a1b8932681db8b847ba4b8859b36ee13eae05ee8c)) and 0.003 ETH ([0x39deafc2…4d43](https://sepolia.basescan.org/tx/0x39deafc2893d124eb5a1f0d0ccfed252ec6bb07b62722de2efa1257d53b84d43)).

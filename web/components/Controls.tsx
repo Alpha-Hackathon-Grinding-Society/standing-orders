@@ -56,7 +56,7 @@ export function Controls({ data, preview, onDone }: Props) {
 
   return (
     <Panel title="Controls" id="controls-title">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
         <div className="flex flex-col gap-4">
           {data.paused ? (
             <Notice tone="warning" symbol="[!]" word="PAUSED">
@@ -195,7 +195,7 @@ function ReactBalance({ data }: { data: StewardData }) {
   const days = Number((rb.balance * 10n) / network.reactPerDay) / 10;
 
   return (
-    <div className="flex flex-col gap-2 border-t border-hairline pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+    <div className="flex flex-col gap-2 border-t border-hairline pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6 xl:border-t xl:border-l-0 xl:pt-4 xl:pl-0">
       <Label level={3}>REACT balance</Label>
       <p className="font-mono text-sm text-ink-mono">
         <span className="text-ink">{formatAmount(rb.balance, 18, symbol)}</span> · about {days} day

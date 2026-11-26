@@ -1,16 +1,26 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { MotionConfig } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { type StewardData, loadHistory, loadSteward } from "@/lib/data";
+import { type MoneySources, type StewardData, loadHistory, loadSources, loadSteward } from "@/lib/data";
 import { NETWORKS, type NetworkKey } from "@/lib/networks";
-import { isPreviewState, previewData, previewHistory } from "@/lib/preview";
+import { BOOT_KEY } from "@/lib/motion";
+import { isPreviewState, previewData, previewHistory, previewSources } from "@/lib/preview";
 import { Controls } from "./Controls";
 import { GuardianCard } from "./GuardianCard";
+import { LoopDiagram } from "./LoopDiagram";
+import { MoneyMap } from "./map/MoneyMap";
+import { Boot } from "./motion/Boot";
+import { BootContext } from "./motion/BootContext";
+import { Reveal } from "./motion/Reveal";
+import { RecentActions } from "./RecentActions";
 import { RuleCards } from "./RuleCards";
+import { SectionNav } from "./SectionNav";
 import { SetupFlow } from "./SetupFlow";
+import { StatRow } from "./StatRow";
 import { TopBar } from "./TopBar";
 import { VaultCard } from "./VaultCard";
 import { BracketButton, Notice, Spinner, useNow } from "./ui";
@@ -24,12 +34,20 @@ function initialNetwork(): NetworkKey {
   return NETWORKS.mainnet.deployment ? "mainnet" : "testnet";
 }
 
+/** The boot sequence plays on a tab's first visit, unless the visitor prefers reduced motion. */
+function shouldBoot(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  return sessionStorage.getItem(BOOT_KEY) === null;
+}
+
 /** The one page: dashboard when the wallet has a vault, setup when it does not. */
 export function Steward() {
   const params = useSearchParams();
   const preview = params.get("preview");
   const previewState = isPreviewState(preview) ? preview : null;
   const [network, setNetwork] = useState<NetworkKey>(initialNetwork);
+  const [booting, setBooting] = useState(shouldBoot);
   const { address } = useAccount();
   const now = useNow();
   const queryClient = useQueryClient();
@@ -52,38 +70,69 @@ export function Steward() {
     enabled: live && Boolean(data.data?.vault),
     staleTime: 60_000,
   });
+  const senders = data.data?.rulebook?.incomeSenders;
+  const sources = useQuery({
+    queryKey: ["sources", network, address, senders],
+    queryFn: () => loadSources(network, address!, data.data!.vault!, senders ?? []),
+    enabled: live && Boolean(data.data?.vault),
+    staleTime: 60_000,
+  });
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["steward", network, address] });
     queryClient.invalidateQueries({ queryKey: ["history", network, address] });
+    queryClient.invalidateQueries({ queryKey: ["sources", network, address] });
   };
 
   // Preview data is fixed at first render so countdowns tick down like the real page.
   const [previewAt] = useState(() => Math.floor(Date.now() / 1000));
   const shown: StewardData | undefined = previewState ? previewData(previewState, previewAt) : data.data;
   const shownHistory = previewState ? previewHistory(previewState, previewAt) : history.data;
+  const [shownSources] = useState(() => (previewState ? previewSources(previewState, previewAt) : null));
 
   return (
-    <main className="mx-auto flex w-full max-w-page flex-col gap-8 px-6 pt-6 pb-24">
-      <TopBar network={previewState ? "testnet" : network} onNetwork={chooseNetwork} preview={previewState !== null} />
-      {previewState ? (
-        <Notice tone="warning" symbol="[!]" word="PREVIEW">
-          Sample data showing the {previewState} state, not a real vault. Remove <code>?preview</code> from the address
-          to see your own.
-        </Notice>
-      ) : null}
-      <Body
-        network={previewState ? "testnet" : network}
-        connected={previewState !== null || address !== undefined}
-        user={address}
-        data={shown}
-        history={shownHistory}
-        loading={!previewState && data.isPending && live}
-        failed={!previewState && data.isError && !data.data}
-        now={now}
-        preview={previewState !== null}
-        onDone={refresh}
-      />
-    </main>
+    // Springs and slides follow the visitor's reduced-motion setting too, not only CSS animations.
+    <MotionConfig reducedMotion="user">
+      <BootContext.Provider value={!booting}>
+        {booting ? (
+          <Boot
+            network={NETWORKS[previewState ? "testnet" : network]}
+            onDone={() => {
+              sessionStorage.setItem(BOOT_KEY, "1");
+              setBooting(false);
+            }}
+          />
+        ) : null}
+        <main inert={booting} className="mx-auto flex w-full max-w-page flex-col gap-8 px-6 pt-6 pb-24">
+          <Reveal>
+            <TopBar
+              network={previewState ? "testnet" : network}
+              onNetwork={chooseNetwork}
+              preview={previewState !== null}
+            />
+          </Reveal>
+          {previewState ? (
+            <Notice tone="warning" symbol="[!]" word="PREVIEW">
+              Sample data showing the {previewState} state, not a real vault. Remove <code>?preview</code> from the
+              address to see your own.
+            </Notice>
+          ) : null}
+          <Body
+            network={previewState ? "testnet" : network}
+            connected={previewState !== null || address !== undefined}
+            user={address}
+            data={shown}
+            history={shownHistory}
+            sources={shownSources ?? sources.data}
+            sourcesFailed={!shownSources && sources.isError}
+            loading={!previewState && data.isPending && live}
+            failed={!previewState && data.isError && !data.data}
+            now={now}
+            preview={previewState !== null}
+            onDone={refresh}
+          />
+        </main>
+      </BootContext.Provider>
+    </MotionConfig>
   );
 }
 
@@ -93,6 +142,8 @@ type BodyProps = {
   user: `0x${string}` | undefined;
   data: StewardData | undefined;
   history: Awaited<ReturnType<typeof loadHistory>> | undefined;
+  sources: MoneySources | undefined;
+  sourcesFailed: boolean;
   loading: boolean;
   failed: boolean;
   now: number;
@@ -100,7 +151,20 @@ type BodyProps = {
   onDone: () => void;
 };
 
-function Body({ network, connected, user, data, history, loading, failed, now, preview, onDone }: BodyProps) {
+function Body({
+  network,
+  connected,
+  user,
+  data,
+  history,
+  sources,
+  sourcesFailed,
+  loading,
+  failed,
+  now,
+  preview,
+  onDone,
+}: BodyProps) {
   const [settingUp, setSettingUp] = useState(false);
   const n = NETWORKS[network];
 
@@ -133,14 +197,41 @@ function Body({ network, connected, user, data, history, loading, failed, now, p
     );
   }
 
+  // Wide screens: the money map takes two thirds, on the left, held in view while the cards scroll
+  // in the third on the right. Narrower ones stack the map, two thirds of the screen tall, above them.
   return (
-    <div className="flex flex-col gap-8">
-      <div className="grid gap-4 md:grid-cols-2">
-        <VaultCard data={data} history={history} />
-        <GuardianCard data={data} now={now} preview={preview} onDone={onDone} />
+    <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start">
+      <div className="xl:sticky xl:top-6 xl:h-[calc(100dvh-3rem)] xl:max-h-[64rem]">
+        <MoneyMap data={data} sources={sources} failed={sourcesFailed} preview={preview} now={now} />
       </div>
-      <RuleCards data={data} />
-      <Controls data={data} preview={preview} onDone={onDone} />
+      <div className="flex min-w-0 flex-col gap-8">
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+            <Reveal order={1} className="grid">
+              <VaultCard data={data} />
+            </Reveal>
+            <Reveal order={2} className="grid">
+              <GuardianCard data={data} now={now} preview={preview} onDone={onDone} />
+            </Reveal>
+          </div>
+          <Reveal order={3}>
+            <StatRow data={data} history={history} />
+          </Reveal>
+          <Reveal order={4}>
+            <LoopDiagram data={data} history={history} now={now} />
+          </Reveal>
+        </div>
+        <Reveal>
+          <RuleCards data={data} />
+        </Reveal>
+        <Reveal>
+          <Controls data={data} preview={preview} onDone={onDone} />
+        </Reveal>
+        <Reveal>
+          <RecentActions data={data} history={history} now={now} />
+        </Reveal>
+      </div>
+      <SectionNav />
     </div>
   );
 }
@@ -157,12 +248,14 @@ const VAULT_ART = String.raw`
 /** Empty state: an ASCII drawing at low contrast, one sentence and one bracket button. */
 function Intro({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section aria-label="Get started" className="flex flex-col items-center gap-4 py-16 text-center">
-      <pre aria-hidden="true" className="font-mono text-sm leading-5 text-ink-muted">
-        {VAULT_ART}
-      </pre>
-      <p className="max-w-xl text-lg text-ink-secondary">{children}</p>
-      {action}
-    </section>
+    <Reveal>
+      <section aria-label="Get started" className="flex flex-col items-center gap-4 py-16 text-center">
+        <pre aria-hidden="true" className="font-mono text-sm leading-5 text-ink-muted">
+          {VAULT_ART}
+        </pre>
+        <p className="max-w-xl text-lg text-ink-secondary">{children}</p>
+        {action}
+      </section>
+    </Reveal>
   );
 }
