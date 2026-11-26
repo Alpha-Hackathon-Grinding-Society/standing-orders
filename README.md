@@ -6,9 +6,11 @@ Set your money rules once: a share of every paycheck goes into savings, vested t
 
 > Built for the Reactive Omni Buildathon, Set It and Forget It track. Small, unaudited amounts only. Progress per phase is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
+**Try it:** https://steward-reactive.vercel.app/ ([no-wallet preview](https://steward-reactive.vercel.app/?preview=active)) · **Judging?** Start with [JUDGES.md](JUDGES.md), or run `node scripts/check-live.mjs` to re-check every transaction below from public RPCs, with no keys.
+
 ## Demo video
 
-Coming with the submission.
+Coming with the submission (under 3 minutes; script in [docs/DEMO.md](docs/DEMO.md)).
 
 ## On-chain evidence
 
@@ -26,11 +28,26 @@ Each rule action takes three transactions: the event on Base (the origin), your 
 | Guardian cleared by activity on a second chain | Unichain Sepolia → Lasna | [0xf73c…076f](https://sepolia.uniscan.xyz/tx/0xf73cdb6848b4ec58c7d1ac358c39d6b7a3f1e4a351455969e3a0a6dc0d2d076f) | [0xe86e…9642](https://lasna.reactscan.net/tx/0xe86ee39820192c3b5fdba3bc578d4750f43b7c53ed27b019115dbb317c1f9642) | none |
 | Guardian release to the beneficiary after the grace period | Lasna cron → Base Sepolia | `Cron10` tick | [0xdf94…46da](https://lasna.reactscan.net/tx/0xdf94be3488bbe60d96c4c8e5f94a2861424328b3bc27fc53afa2b2dda6b746da) | [0x0e9f…99a2](https://sepolia.basescan.org/tx/0x0e9f2cc81682c7334946b566767b109f02f463c873763be4b4f69b3ab31c99a2) |
 
-**Mainnet** (Base and Arbitrum ↔ Reactive): the first real split and the Guardian's first checks will be recorded here once the mainnet vault is live.
+**Mainnet** (Base and Arbitrum ↔ Reactive 1597), the builder's own vault:
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 1 split (1 USDC paid by the listed sender, 0.20 saved) | Base → Reactive → Base | [0xe98c…cd86](https://basescan.org/tx/0xe98c0af12daabde1f1bc4908d79e452e4ef9d81e2e124adf654034a6d70ccd86) | [0xf32c…8b81](https://reactscan.net/tx/0xf32c83d342bdd748710f03576c23986b8d4dd9bd521729e1e19074b022558b81) | [0x95f8…3eb0](https://basescan.org/tx/0x95f8b3c1e0d4498a2e86b215612d4f69790cd9ce27d7392237e67a96eb383eb0) |
+| Rule 1 split (0.18 USDC paid, 0.036 saved) | Base → Reactive → Base | [0xc148…0925](https://basescan.org/tx/0xc148e0f4084b8ec28066dd0af587e3a4d47e4e9f40f0b279ed6f8e87c1ea0925) | [0xfd3a…45fb](https://reactscan.net/tx/0xfd3a3206cc94e2f4c2a089a2a121fb246c566232c1f7357a191f0611a4f745fb) | [0xf9b9…7b0f](https://basescan.org/tx/0xf9b9812bf9c873d8093044727cd483c77ed381fb05026c3454b6bd4ffbb67b0f) |
+| Guardian activity: I'm alive | Base → Reactive | [0x7f09…5696](https://basescan.org/tx/0x7f090f8fe730f4bb4d90c18eb3c06807708ec5ad503d3c674f9f4bf4257d5696) | [0xeac1…4a42](https://reactscan.net/tx/0xeac133f9259ae9abfc3fb37c019b1927f1823e7c1e042dd80fe619c2722f4a42) | none needed |
+| Rule 1 ignored a look-alike sender (address poisoning) | Base → Reactive | `0x9b0f…b960` | [0xf354…c7b9](https://reactscan.net/tx/0xf354c11354e969143e7d550397dea80a36d0911e74ca4a5aed8391c65ff9c7b9) | none, by design |
+
+**How fast.** Measured by `scripts/check-live.mjs` from block numbers and timestamps:
+
+| Loop | Payment → share in the vault |
+| --- | --- |
+| Mainnet Rule 1 splits | 7–8 Base blocks, about 1.5 s (Base makes a block every 0.2 s) |
+| Testnet Rule 1 splits | 8–10 Base Sepolia blocks, about 2 s |
+| Reactive tx → callback on Base (all rules, both networks) | 1–3 s by block timestamps |
 
 ## Mainnet usage
 
-The builder's own Steward vault on Base mainnet, running Rule 1 and the Guardian on real income. Its days running, total saved, REACT spent per day and every rule action will be logged in `docs/MAINNET_USAGE.md` once it starts.
+The builder's own Steward vault on Base mainnet has run since **2026-11-26** on real income, with Rule 1 and the Guardian on: 20% of USDC from one listed sender, at most 5 USDC per 30 days, and the Guardian set to 90 days of silence and 14 of grace, watching Base and Arbitrum. Every rule action, with its three hashes, plus REACT spent per day, is in [docs/MAINNET_USAGE.md](docs/MAINNET_USAGE.md). Run `make check-live` for its state right now.
 
 ## Architecture
 
@@ -142,6 +159,8 @@ BENEFICIARY=0x... make e2e-phase3   # claim, warning, clear from Unichain, warni
 | `make withdraw-react` | Sends the REACT left in your Rulebook back to you (after a release, or to retire it) |
 | `make check-now` | Advances the Guardian by the clock if cron is late |
 | `make status` | Prints your Guardian state, clocks and REACT balance |
+| `make pay-test-usdc TO_ADDRESS=0x…` | Testnet only: pays that address test USDC from your wallet, so its Rulebook splits it (list your wallet as a sender) |
+| `make check-live` | Re-checks every recorded loop and the live mainnet vault from public RPCs (no keys) |
 
 **Keeping your Rulebook running.** Your Rulebook pays for its own work in REACT (lREACT on Lasna): about 0.012 per cron tick or event it handles, plus each callback. A quiet day on `Cron1000` costs about 1 REACT. If the balance runs out, the network records a debt and stops delivering events until it's paid. `make top-up-react` (`TOP_UP_WEI`, default 1) sends REACT and calls `coverDebt()` in one go. Anyone can call `coverDebt()` once there's enough balance. The app shows `[!] LOW REACT` below about a day's cost on testnet (three on mainnet), and `OUT OF REACT` when there's debt.
 
@@ -171,7 +190,16 @@ Add `?preview=active` (or `warning`, `released`, `paused`, `lowreact`, `novault`
 
 **Lasna**: each user has their own Rulebook. The one set up from the app in the test above is [`0x80e7C5958626daAE7e5Be8A99F2E30B2226c7F74`](https://lasna.reactscan.net/address/0x80e7C5958626daAE7e5Be8A99F2E30B2226c7F74), and its vault is [`0xCe5c02d6cEb2340929F00Ef4D2a418DE9cccfC73`](https://sepolia.basescan.org/address/0xCe5c02d6cEb2340929F00Ef4D2a418DE9cccfC73).
 
-**Base and Reactive mainnet**: coming soon (`contracts/deployments/base.json`).
+**Base and Reactive mainnet** (`contracts/deployments/base.json`, `rulebook-reactive.json`). Every one is verified on Sourcify with an exact match:
+
+| Contract | Address | Source |
+| --- | --- | --- |
+| VaultFactory | [`0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686`](https://basescan.org/address/0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686) | [Sourcify](https://repo.sourcify.dev/8453/0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686) |
+| OrdersExecutor | [`0xEaA3CB8cdE5d079CC6da775d21517F7770712036`](https://basescan.org/address/0xEaA3CB8cdE5d079CC6da775d21517F7770712036) | [Sourcify](https://repo.sourcify.dev/8453/0xEaA3CB8cdE5d079CC6da775d21517F7770712036) |
+| Heartbeat | [`0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447`](https://basescan.org/address/0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447) | [Sourcify](https://repo.sourcify.dev/8453/0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447) |
+| The builder's SavingsVault | [`0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75`](https://basescan.org/address/0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75) | [Sourcify](https://repo.sourcify.dev/8453/0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75) |
+| The builder's Rulebook (Reactive) | [`0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a`](https://reactscan.net/address/0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a) | [Sourcify](https://repo.sourcify.dev/1597/0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a) |
+| Callback proxy (Reactive) | `0xCc780DdE33f56f55dE778D42c930959374a4a068` | |
 
 ## Docs
 
@@ -179,7 +207,9 @@ Add `?preview=active` (or `warning`, `released`, `paused`, `lowreact`, `novault`
 - [Design system](docs/DESIGN.md)
 - [Reactive integration notes](docs/NOTES.md): exact APIs, live measurements, design decisions
 - [Security notes](docs/SECURITY.md): Slither triage, trust assumptions, known limits
-- [Transaction hashes](docs/TX_HASHES.md)
+- [Transaction hashes](docs/TX_HASHES.md) and [mainnet usage](docs/MAINNET_USAGE.md)
+- [For judges](JUDGES.md): a 10-minute check, and how to try it on testnet
+- [Demo script](docs/DEMO.md) and [submission text](docs/SUBMISSION.md)
 
 ## License
 
