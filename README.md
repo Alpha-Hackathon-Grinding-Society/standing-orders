@@ -6,7 +6,7 @@ Set your money rules once: a share of every paycheck goes into savings, vested t
 
 > Built for the Reactive Omni Buildathon, Set It and Forget It track. Small, unaudited amounts only. Progress per phase is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
-**Try it:** https://steward-reactive.vercel.app/ ([no-wallet preview](https://steward-reactive.vercel.app/?preview=active)) · **Judging?** Start with [JUDGES.md](JUDGES.md), or run `node scripts/check-live.mjs` to re-check every transaction below from public RPCs, with no keys.
+**Try it:** https://steward-reactive.vercel.app/ · **[See the builder's real mainnet vault, live](https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet)** (read-only, no wallet) · [sample dashboard](https://steward-reactive.vercel.app/?preview=active) · **Judging?** Start with [JUDGES.md](JUDGES.md), or run `node scripts/check-live.mjs` to re-check every transaction below from public RPCs, with no keys.
 
 ## Demo video
 
@@ -47,11 +47,18 @@ Each rule action takes three transactions: the event on Base (the origin), your 
 
 ## Mainnet usage
 
-The builder's own Steward vault on Base mainnet has run since **2026-11-26** on real income, with Rule 1 and the Guardian on: 20% of USDC from one listed sender, at most 5 USDC per 30 days, and the Guardian set to 90 days of silence and 14 of grace, watching Base and Arbitrum. Every rule action, with its three hashes, plus REACT spent per day, is in [docs/MAINNET_USAGE.md](docs/MAINNET_USAGE.md). Run `make check-live` for its state right now.
+The builder's own Steward vault on Base mainnet has run since **2026-11-26** on real income, with Rule 1 and the Guardian on: 20% of USDC from one listed sender, at most 5 USDC per 30 days, and the Guardian set to 90 days of silence and 14 of grace, watching Base and Arbitrum. Every rule action, with its three hashes, plus REACT spent per day, is in [docs/MAINNET_USAGE.md](docs/MAINNET_USAGE.md). Run `make check-live` for its state right now, or [watch it in the app](https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet).
+
+**What it costs to run.** Measured on mainnet: the Rulebook spends about **1.3 REACT a day** on quiet days (about **$0.003 a day**), and each automatic split costs the executor about **0.0000011 ETH** of Base gas (about **$0.002**). Prices from 2026-11-26: REACT $0.0020, ETH $1,698. You pay no gas yourself for anything Steward does.
 
 ## Architecture
 
 Each user has their own `Rulebook` on Reactive and their own `SavingsVault` on Base. The Rulebook decides every action; the executor and the vault only carry it out.
+
+<p align="center"><img src="docs/architecture.svg" alt="Events from Base and Arbitrum, and cron ticks, reach your Rulebook on Reactive. It sends callbacks through Reactive's proxy to the OrdersExecutor on Base, which moves money only into your vault, on to your cold wallet, or to your beneficiary after a full Guardian cycle." width="100%"></p>
+
+<details>
+<summary>The same diagram as text (Mermaid)</summary>
 
 ```mermaid
 flowchart LR
@@ -80,6 +87,8 @@ flowchart LR
   vault -- "if you set one" --> cold
   vault -- "only after Warning and a full grace period" --> heir
 ```
+
+</details>
 
 | Contract | Network | Role |
 | --- | --- | --- |
@@ -174,7 +183,7 @@ make web-check     # lint, typecheck, format check, unit tests
 make web-e2e       # Playwright smoke test (desktop + phone sizes)
 ```
 
-Add `?preview=active` (or `warning`, `released`, `paused`, `lowreact`, `novault`) to the URL to see each state with labelled sample data and no wallet. A phone wallet on the same Wi-Fi can open the app at `http://<your PC's LAN address>:3000` in its built-in browser; add that address to `allowedDevOrigins` in `web/next.config.ts`. WalletConnect is optional: set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in `web/.env.local`.
+Add `?preview=active` (or `warning`, `released`, `paused`, `lowreact`, `novault`) to the URL to see each state with labelled sample data and no wallet. Add `?watch=<address>&net=mainnet` (or `testnet`) to see anyone's real vault, read-only: live data, every signing button disabled. A phone wallet on the same Wi-Fi can open the app at `http://<your PC's LAN address>:3000` in its built-in browser; add that address to `allowedDevOrigins` in `web/next.config.ts`. WalletConnect is optional: set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in `web/.env.local`.
 
 ## Deployed addresses
 

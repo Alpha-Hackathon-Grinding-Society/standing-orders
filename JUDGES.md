@@ -2,7 +2,8 @@
 
 Steward gives each user one savings vault on Base and three money rules that run themselves. Every decision is made by the user's own `Rulebook` reactive contract on Reactive Network; no bot, server or hot key is involved.
 
-- **App:** https://steward-reactive.vercel.app/ (add [`?preview=active`](https://steward-reactive.vercel.app/?preview=active) to see a full dashboard with sample data and no wallet)
+- **The builder's real mainnet vault, live in the app:** [steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet](https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet) (read-only, no wallet needed)
+- **App:** https://steward-reactive.vercel.app/ (add [`?preview=active`](https://steward-reactive.vercel.app/?preview=active) for a full dashboard with sample data)
 - **Repo:** https://github.com/Alpha-Hackathon-Grinding-Society/steward (MIT)
 - **Track:** Set It and Forget It
 
@@ -35,6 +36,8 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 
 **Speed.** From the moment a payment lands to the moment the share sits in the vault takes **7–8 Base blocks, about 1.5 seconds** on mainnet and 8–10 blocks (about 2 seconds) on testnet. Base makes a block every 0.2 s. The full table, measured from block timestamps, is printed by the script.
 
+**What it costs to run.** Measured on mainnet: the Rulebook spends about **1.3 REACT a day** on quiet days (about **$0.003 a day**), and each automatic split costs the executor about **0.0000011 ETH** of Base gas (about **$0.002**). Prices from 2026-11-26: REACT $0.0020, ETH $1,698. You pay no gas yourself for anything Steward does.
+
 **Verified source.** Every mainnet contract is verified on Sourcify with an **exact match** (same source, compiler settings and metadata):
 
 | Contract | Network | Address | Source |
@@ -55,6 +58,9 @@ Every rule has an origin, Reactive and callback hash in the [README](README.md#o
 - **Release to the beneficiary** after the full grace period: [0xdf94…46da](https://lasna.reactscan.net/tx/0xdf94be3488bbe60d96c4c8e5f94a2861424328b3bc27fc53afa2b2dda6b746da) → [0x0e9f…99a2](https://sepolia.basescan.org/tx/0x0e9f2cc81682c7334946b566767b109f02f463c873763be4b4f69b3ab31c99a2)
 
 ## 4. Where each judging criterion is shown
+
+![Steward architecture](docs/architecture.svg)
+
 
 | Criterion | Where to look |
 | --- | --- |

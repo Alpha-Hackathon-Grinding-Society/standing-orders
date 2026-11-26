@@ -16,7 +16,9 @@ Set It and Forget It
 
 ## Links
 
-- Live app: https://steward-reactive.vercel.app/ (no-wallet preview: https://steward-reactive.vercel.app/?preview=active)
+- Live app: https://steward-reactive.vercel.app/
+- The builder's real mainnet vault, read-only in the app: https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet
+- Sample dashboard with no wallet: https://steward-reactive.vercel.app/?preview=active
 - Repository: https://github.com/Alpha-Hackathon-Grinding-Society/steward
 - Demo video: TODO (under 3 minutes)
 - Judges' guide: https://github.com/Alpha-Hackathon-Grinding-Society/steward/blob/main/JUDGES.md
@@ -33,11 +35,16 @@ Set It and Forget It
 
 **Why it needs Reactive.** Every decision lives in the user's own `Rulebook` reactive contract, deployed from their own wallet. It subscribes to their events on two origin chains, always filtered on their address, plus Reactive's cron. When a rule fires, it sends a callback to a single executor on Base. The executor accepts a call only from Reactive's callback proxy, only from the Rulebook that user registered, and only with a fresh nonce. Nothing runs off-chain: no bot, no server, no hot key.
 
-**It's live on mainnet.** The builder's own vault has run on Base mainnet with Reactive mainnet since 26 November 2026, on real income. Real splits have moved USDC into the vault in about 1.5 seconds from payment to savings, and the Guardian has recorded the owner's activity. Rule 1 also ignored an address-poisoning payment from a look-alike sender. Every mainnet contract is verified on Sourcify with an exact match. `node scripts/check-live.mjs` re-checks every recorded loop from public RPCs, with no keys.
+**It's live on mainnet.** The builder's own vault has run on Base mainnet with Reactive mainnet since 26 November 2026, on real income. Real splits have moved USDC into the vault in about 1.5 seconds from payment to savings, and the Guardian has recorded the owner's activity. Rule 1 also ignored an address-poisoning payment from a look-alike sender. It costs about a quarter of a cent a day to keep the rules running (1.3 REACT) and about a fifth of a cent of Base gas per automatic split. Anyone can open the live vault in the app, read-only, from the link above. Every mainnet contract is verified on Sourcify with an exact match. `node scripts/check-live.mjs` re-checks every recorded loop from public RPCs, with no keys.
 
 **Safety.** Funds can reach only the user's vault, their cold wallet (through the vault), or their beneficiary after Warning plus a full grace period. The owner can always withdraw, even while paused. Beneficiary and cold-wallet changes wait 24 hours. Steward's own automated moves never count as the user being alive. Each of these seven limits is enforced in the contracts and checked by an invariant suite of 1,000 runs × 50 steps.
 
 **Built with.** Solidity, Foundry and `reactive-lib-omni`; OpenZeppelin; Next.js, wagmi, viem and RainbowKit. 124 contract tests (unit, fuzz, invariant, fork) and 84 app tests. Slither triaged.
+
+## Images
+
+- Architecture: `docs/architecture.png` (also `docs/architecture.svg`)
+- Screenshot of the live mainnet vault through the watch link: `docs/screenshots/live-mainnet-vault.png` (2026-11-26)
 
 ## Deployed contracts
 

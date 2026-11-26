@@ -22,7 +22,7 @@ Short by about 2 lREACT in total. To fix it, get **≈ 0.05 Base Sepolia ETH** f
 1. https://steward-reactive.vercel.app/ (Testnet selected, fresh account connected)
 2. https://sepolia.basescan.org/ (for the payment and callback)
 3. https://lasna.reactscan.net/ (for the Reactive transactions)
-4. https://steward-reactive.vercel.app/ on **Mainnet** with the real wallet connected (Scene 5)
+4. https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet (Scene 5: the real vault, read-only, no wallet needed)
 5. https://reactscan.net/address/0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a (the mainnet Rulebook)
 
 **Terminal:** repo root, `.env` loaded, font large enough to read in the video (≥ 18 pt).
@@ -85,7 +85,7 @@ It deploys a demo Rulebook with short timers: 3 minutes of silence, 2 minutes of
 
 ## Scene 5: it runs on mainnet, with real money (2:15–2:45)
 
-**Show:** tab 4, the real dashboard on Base mainnet: vault balance, Guardian `(v) ACTIVE`, days running. Then run the checker in the terminal and let the summary scroll:
+**Show:** tab 4, the real dashboard on Base mainnet through the watch link: vault balance, Guardian `(v) ACTIVE` with its countdown, the money map's real payments. Point at the `>> WATCHING` note: anyone can open this link. Then run the checker in the terminal and let the summary scroll:
 
 ```bash
 node scripts/check-live.mjs --mainnet
@@ -93,13 +93,13 @@ node scripts/check-live.mjs --mainnet
 
 Hold on `The mainnet vault right now` and `All checks passed.` Then open one mainnet split on basescan.org and reactscan.net.
 
-**Say:** "This is my own vault on Base mainnet, running since November 26th on real income. Every action has three real transactions, and anyone can check them with one command. That includes a payment from a look-alike address, built to trick me, that Steward correctly ignored."
+**Say:** "This is my own vault on Base mainnet, running since November 26th on real income. It costs about a quarter of a cent a day to run. Every action has three real transactions, and anyone can check them with one command. That includes a payment from a look-alike address, built to trick me, that Steward correctly ignored."
 
 **Update before recording:** the days running and total saved. Take them from the checker's output.
 
 ## Scene 6: safety limits and the repo (2:45–3:00)
 
-**Show:** README "Safety limits", then the repo URL and the app URL as a closing card.
+**Show:** `docs/architecture.png` for two seconds, README "Safety limits", then the repo URL and the app URL as a closing card.
 
 **Say:** "Funds can only go to my vault, my cold wallet, or my beneficiary after a full Guardian cycle. I can always withdraw, even while paused. The code is open, tested and verified. Steward: set it and forget it. github.com/Alpha-Hackathon-Grinding-Society/steward."
 
