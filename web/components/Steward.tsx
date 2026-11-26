@@ -8,7 +8,9 @@ import { useAccount } from "wagmi";
 import { type MoneySources, type StewardData, loadHistory, loadSources, loadSteward } from "@/lib/data";
 import { NETWORKS, type NetworkKey } from "@/lib/networks";
 import { BOOT_KEY } from "@/lib/motion";
+import { shortAddress } from "@/lib/format";
 import { isPreviewState, previewData, previewHistory, previewSources } from "@/lib/preview";
+import { readWatch } from "@/lib/watch";
 import { Controls } from "./Controls";
 import { GuardianCard } from "./GuardianCard";
 import { LoopDiagram } from "./LoopDiagram";
@@ -41,12 +43,16 @@ function shouldBoot(): boolean {
   return sessionStorage.getItem(BOOT_KEY) === null;
 }
 
-/** The one page: dashboard when the wallet has a vault, setup when it does not. */
+/** The one page: dashboard when the wallet has a vault, setup when it does not. `?watch=0x…` shows anyone's vault read-only. */
 export function Steward() {
   const params = useSearchParams();
   const preview = params.get("preview");
   const previewState = isPreviewState(preview) ? preview : null;
-  const [network, setNetwork] = useState<NetworkKey>(initialNetwork);
+  const watch = readWatch(params.get("watch"), params.get("net"));
+  const watched = !previewState && watch.kind === "address" ? watch.address : undefined;
+  const [network, setNetwork] = useState<NetworkKey>(() =>
+    watch.kind === "address" && watch.network && NETWORKS[watch.network].deployment ? watch.network : initialNetwork(),
+  );
   const [booting, setBooting] = useState(shouldBoot);
   const { address } = useAccount();
   const now = useNow();
@@ -54,33 +60,36 @@ export function Steward() {
 
   const chooseNetwork = (key: NetworkKey) => {
     setNetwork(key);
-    localStorage.setItem("steward-network", key);
+    // A watch link picks its own network; don't let it change the visitor's saved choice.
+    if (!watched) localStorage.setItem("steward-network", key);
   };
 
-  const live = !previewState && address !== undefined;
+  // Whose vault the page shows: the watched address, else the connected wallet.
+  const viewer = watched ?? address;
+  const live = !previewState && viewer !== undefined;
   const data = useQuery({
-    queryKey: ["steward", network, address],
-    queryFn: () => loadSteward(network, address!),
+    queryKey: ["steward", network, viewer],
+    queryFn: () => loadSteward(network, viewer!),
     enabled: live,
     refetchInterval: REFRESH_MS,
   });
   const history = useQuery({
-    queryKey: ["history", network, address],
-    queryFn: () => loadHistory(network, address!),
+    queryKey: ["history", network, viewer],
+    queryFn: () => loadHistory(network, viewer!),
     enabled: live && Boolean(data.data?.vault),
     staleTime: 60_000,
   });
   const senders = data.data?.rulebook?.incomeSenders;
   const sources = useQuery({
-    queryKey: ["sources", network, address, senders],
-    queryFn: () => loadSources(network, address!, data.data!.vault!, senders ?? []),
+    queryKey: ["sources", network, viewer, senders],
+    queryFn: () => loadSources(network, viewer!, data.data!.vault!, senders ?? []),
     enabled: live && Boolean(data.data?.vault),
     staleTime: 60_000,
   });
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["steward", network, address] });
-    queryClient.invalidateQueries({ queryKey: ["history", network, address] });
-    queryClient.invalidateQueries({ queryKey: ["sources", network, address] });
+    queryClient.invalidateQueries({ queryKey: ["steward", network, viewer] });
+    queryClient.invalidateQueries({ queryKey: ["history", network, viewer] });
+    queryClient.invalidateQueries({ queryKey: ["sources", network, viewer] });
   };
 
   // Preview data is fixed at first render so countdowns tick down like the real page.
@@ -107,7 +116,7 @@ export function Steward() {
             <TopBar
               network={previewState ? "testnet" : network}
               onNetwork={chooseNetwork}
-              preview={previewState !== null}
+              mode={previewState ? "preview" : watched ? "watch" : "wallet"}
             />
           </Reveal>
           {previewState ? (
@@ -115,11 +124,20 @@ export function Steward() {
               Sample data showing the {previewState} state, not a real vault. Remove <code>?preview</code> from the
               address to see your own.
             </Notice>
+          ) : watched ? (
+            <Notice tone="info" symbol=">>" word="WATCHING">
+              A read-only view of {shortAddress(watched)}&apos;s real vault, read live from the chain. Nothing can be
+              signed here. Remove <code>?watch</code> from the address to connect your own wallet.
+            </Notice>
+          ) : !previewState && watch.kind === "invalid" ? (
+            <Notice tone="danger" symbol="(x)" word="FAILED">
+              This watch link has no valid 0x address. Check the link, or connect your wallet to see your own vault.
+            </Notice>
           ) : null}
           <Body
             network={previewState ? "testnet" : network}
-            connected={previewState !== null || address !== undefined}
-            user={address}
+            connected={previewState !== null || viewer !== undefined}
+            user={viewer}
             data={shown}
             history={shownHistory}
             sources={shownSources ?? sources.data}
@@ -128,6 +146,7 @@ export function Steward() {
             failed={!previewState && data.isError && !data.data}
             now={now}
             preview={previewState !== null}
+            watching={watched !== undefined}
             onDone={refresh}
           />
         </main>
@@ -148,6 +167,8 @@ type BodyProps = {
   failed: boolean;
   now: number;
   preview: boolean;
+  /** A `?watch` link: real data, nothing to sign. */
+  watching: boolean;
   onDone: () => void;
 };
 
@@ -163,6 +184,7 @@ function Body({
   failed,
   now,
   preview,
+  watching,
   onDone,
 }: BodyProps) {
   const [settingUp, setSettingUp] = useState(false);
@@ -186,6 +208,9 @@ function Body({
   }
 
   if (!data.vault) {
+    if (watching) {
+      return <Intro>This address has no Steward vault on {n.label.toLowerCase()}.</Intro>;
+    }
     if (settingUp && (user || preview)) {
       return <SetupFlow networkKey={network} user={user ?? data.user} preview={preview} onDone={onDone} />;
     }
@@ -211,7 +236,7 @@ function Body({
               <VaultCard data={data} />
             </Reveal>
             <Reveal order={2} className="grid">
-              <GuardianCard data={data} now={now} preview={preview} onDone={onDone} />
+              <GuardianCard data={data} now={now} readOnly={preview || watching} onDone={onDone} />
             </Reveal>
           </div>
           <Reveal order={3}>
@@ -225,7 +250,7 @@ function Body({
           <RuleCards data={data} />
         </Reveal>
         <Reveal>
-          <Controls data={data} preview={preview} onDone={onDone} />
+          <Controls data={data} readOnly={preview || watching} onDone={onDone} />
         </Reveal>
         <Reveal>
           <RecentActions data={data} history={history} now={now} />

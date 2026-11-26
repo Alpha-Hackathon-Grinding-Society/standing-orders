@@ -11,10 +11,11 @@ import { send, waitFor } from "@/lib/wallet";
 import { TxRow } from "./TxRow";
 import { BracketButton, ExternalLink, Label, Notice, Panel } from "./ui";
 
-type Props = { data: StewardData; preview: boolean; onDone: () => void };
+/** `readOnly`: preview and watch links show the controls but can't sign. */
+type Props = { data: StewardData; readOnly: boolean; onDone: () => void };
 
 /** `[ PAUSE ALL ]` (with a confirm step) and `[ WITHDRAW ]`, both on Base. */
-export function Controls({ data, preview, onDone }: Props) {
+export function Controls({ data, readOnly, onDone }: Props) {
   const network = NETWORKS[data.network];
   const d = network.deployment;
   const [confirming, setConfirming] = useState(false);
@@ -67,18 +68,18 @@ export function Controls({ data, preview, onDone }: Props) {
           <div className="flex flex-wrap gap-2">
             {data.paused ? (
               <BracketButton
-                disabled={preview || busy}
+                disabled={readOnly || busy}
                 onClick={() => run("Unpause", { address: d.ordersExecutor, abi: executorAbi, functionName: "unpause" })}
               >
                 Unpause
               </BracketButton>
             ) : (
-              <BracketButton disabled={preview || busy} aria-expanded={confirming} onClick={() => setConfirming(true)}>
+              <BracketButton disabled={readOnly || busy} aria-expanded={confirming} onClick={() => setConfirming(true)}>
                 Pause all
               </BracketButton>
             )}
             <BracketButton
-              disabled={preview || busy}
+              disabled={readOnly || busy}
               aria-expanded={withdrawing}
               onClick={() => setWithdrawing((w) => !w)}
             >
