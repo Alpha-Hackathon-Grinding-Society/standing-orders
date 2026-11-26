@@ -19,9 +19,10 @@ The ignored payment was an address-poisoning attempt: dust from an address made 
 
 ## REACT spent
 
-Rulebook funded with 30 REACT at 01:58 UTC on 2026-11-26 (deploy fee paid separately by the wallet). Read the balance with `make status NET=reactive`.
+Rulebook funded with 30 REACT at 01:58 UTC on 2026-11-26 (deploy fee paid separately by the wallet). Read the balance with `make status NET=reactive`, or with no keys at all, `make check-live`.
 
 | Date (UTC) | Rulebook REACT | Spent since previous | Note |
 | --- | --- | --- | --- |
 | 2026-11-26 02:19 | 29.932342 | 0.068 | subscriptions, one activity event, one split, cron ticks since 01:58 (Status script) |
 | 2026-11-26 03:00 | 29.858159 | 0.074 | a second split, one I'm alive, one ignored payment, cron ticks |
+| 2026-11-26 07:43 | 29.599389 | 0.259 | quiet: cron ticks only (≈ 1.3 REACT/day); read by `make check-live` |

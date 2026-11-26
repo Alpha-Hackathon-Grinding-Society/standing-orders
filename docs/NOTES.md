@@ -227,6 +227,18 @@ A Rulebook tick that exits after one timestamp comparison will cost about the sa
 | Recovering REACT | `withdrawReact(amount)`, owner only: pays any debt first, then sends `amount` to the owner and nothing else. `make withdraw-react` sends everything left after debt. This closes the Phase 3 open question (1.99 + 0.69 lREACT stranded in released Rulebooks; those were deployed before this function existed, so they stay stranded). | `test_withdrawReact*` |
 | Rulebook size | 13,862 bytes of creation code after these changes. The page deploys whatever `make web-sync` copies from `contracts/out`. | `web/lib/generated/contracts.json` |
 
+## 16. Phase 7 findings: verification, timing and the live check (2026-11-26)
+
+| Item | Finding | Evidence |
+| --- | --- | --- |
+| Base block time | **0.2 s** on Base and Base Sepolia (3,000 blocks measured); Reactive mainnet ≈ 0.79 s, Lasna ≈ 1.09 s. The Phase 4 note "7 Base blocks ≈ 14 s" assumed 2 s blocks and was wrong: the first mainnet split took about **1.4 s** from payment to vault. | `eth_getBlockByNumber` over the last 3,000 blocks |
+| Payment → vault | Mainnet splits 7 and 8 Base blocks (≈ 1.4–1.6 s); testnet splits 8 and 10 Base Sepolia blocks (≈ 1.6–2 s). Block timestamps are whole seconds and each chain has its own clock, so origin → Reactive often reads 0 or −1 s; the checker reports those as "≤ 1 s". | `scripts/check-live.mjs` timing table |
+| What a Reactive tx proves | The Rulebook's event carries `originTxHash` as an indexed topic (topic 1 for `SplitRequested` / `IncomeIgnored`, topic 2 for `ActivityRecorded` / `GuardianCleared`). The same tx carries a system-contract log (`0x8888…8888`, topic0 `0xef94dbc6…b133`) with topics (destination chain id, Rulebook, destination contract) for each queued callback. The callback tx's `to` is the destination's callback proxy. | receipts of every loop in `scripts/evidence.json` |
+| Mainnet REACT per day | 30 → 29.599 REACT in the first 5.75 h; 0.259 over the quiet 4.7 h from 03:00 to 07:43 UTC, i.e. **≈ 1.3 REACT/day**, as §15 expected for `Cron1000`. | `make check-live`; `docs/MAINNET_USAGE.md` |
+| Source verification | Sourcify supports Base, Base Sepolia, Reactive mainnet (1597), Lasna, Unichain Sepolia and Arbitrum. `forge verify-contract --verifier sourcify` needs no API key. All five mainnet contracts (factory, executor, heartbeat, the builder's vault and Rulebook) are **exact matches**; the vault's args are `(owner, executor)` and the Rulebook's are its deploy tx input after the creation code. On Base Sepolia, Heartbeat and MockUSDC are exact matches and the executor a partial match; the factory was deployed from earlier source (bytecode length mismatch) and stays unverified. Blockscout picks up Sourcify results, so the verified MockUSDC can be minted from its Write tab. | Sourcify jobs `61fbddcb…`, `13497b14…`, `c9e5b101…`, `425e76d9…`, `bc71ac44…` |
+| Basescan verification | Not done: it needs `BASESCAN_API_KEY`, which is empty in `.env`. Sourcify covers the same purpose; Basescan can be added later with `forge verify-contract --verifier etherscan`. | — |
+| lREACT faucet | A plain send to the Base Sepolia faucet `0x2afa…5967` works, as does `request(address)` (both simulated with `eth_call`). | `cast call --value` |
+
 ---
 
 ## Design impact (A and B approved 2026-11-15; C approved with the Phase 1 cron default)
