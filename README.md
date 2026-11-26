@@ -96,8 +96,8 @@ Also worth knowing:
 ## How to run
 
 ```bash
-git clone --recurse-submodules https://github.com/Alpha-Hackathon-Grinding-Society/standing-orders.git
-cd standing-orders
+git clone --recurse-submodules https://github.com/Alpha-Hackathon-Grinding-Society/steward.git
+cd steward
 make install   # pinned submodules (if you cloned without --recurse-submodules)
 make test      # unit, fuzz and invariant tests
 make help      # every build, deploy and e2e target

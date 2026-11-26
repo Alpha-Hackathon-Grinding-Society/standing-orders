@@ -1,6 +1,6 @@
 ---
 version: 1.0
-name: Reactive-Inspired Design System (Reflex, Standing Orders, Helm)
+name: Reactive-Inspired Design System (Reflex, Steward, Helm)
 description: >
   A design system for our three Reactive Omni Buildathon apps, taken from what Reactive Network
   ships today: reactive.network, Reactscan (lasna.reactscan.net), the docs site, and the
@@ -118,7 +118,7 @@ There are two modes of the same language:
 
 ### Brand and naming rules (important)
 
-- Our products keep **their own names and wordmarks**: Reflex, Standing Orders, Helm. Never use the Reactive logo as our logo, and never present our apps as official Reactive products.
+- Our products keep **their own names and wordmarks**: Reflex, Steward, Helm. Never use the Reactive logo as our logo, and never present our apps as official Reactive products.
 - To credit the platform, use a small **"Built on Reactive"** badge with the official logotype from the [media kit](https://reactive.network/press). Per Reactive's rules: keep clear space equal to the symbol's height; don't recolor, rotate, stretch or add effects; on busy backgrounds use the solid white logotype instead of the gradient one.
 
 ## Colors
@@ -316,7 +316,7 @@ Two thirds of the dashboard on wide screens (1280px and up), on the left and hel
 - **Replay chart** (1s / 3s / 7s): grey bars, with the 1s bar in Maya.
 - Primary action: `[ TRIGGER SHOCK ]` (demo only).
 
-### Standing Orders (Set It and Forget It)
+### Steward (Set It and Forget It)
 - Warmer use of the same system: more whitespace, plain-language sentences, fewer data rows.
 - **Rule cards** (marketing-card style) for Pay yourself first, Claim and secure, Guardian, each with a small ASCII icon and an on/off toggle.
 - **Guardian states:** Active = success green, Warning = warning amber, Released = Quartz. Countdown in mono (`89d 04h until warning`).

@@ -63,7 +63,7 @@ You are the senior smart-contract and frontend engineer on Steward, a one-person
 | Data | Read straight from RPCs; no backend database |
 
 ```
-steward/                    # repo root (this repo: standing-orders)
+steward/                    # repo root
   CLAUDE.md                 # this file
   README.md
   LICENSE                   # MIT
