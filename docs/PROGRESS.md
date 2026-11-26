@@ -319,7 +319,7 @@ Decisions and findings
 - Callback proxies rechecked on Reactive's Origins and Destinations page today (NOTES §9)
 - Executor float lowered from the script's 0.001 ETH default to 0.00015 ETH (`EXECUTOR_FUNDING_WEI`) to fit the funds available; a split callback costs about 0.000001 ETH, so this covers about 150
 - Funding route that worked with no exchange: ETH on Base → REACT on Base (`0xeDAc…4A24`, confirmed in the official portal's code) → native REACT via `portal.reactive.network`. The portal reads the ETH balance on the wallet's connected chain, so it must be on Base (NOTES §9)
-- Payment to vault took 7 Base blocks (≈ 14 s)
+- Payment to vault took 7 Base blocks. (Corrected in Phase 7: Base makes a block every 0.2 s, so that is about 1.4 s, not 14 s. See NOTES §16.)
 
 Risks and open questions
 - The permit budget is 5 USDC in total: after 25 payments' worth of splits, Rule 1 needs a new permit. Default: re-sign from the page if more real income arrives
@@ -329,3 +329,47 @@ Risks and open questions
 Next
 - Phase 6's open gate needs the vault to run for 7 days (to 2026-12-03), with the usage table updated as actions happen
 - Phase 5's open gate ("the Guardian card shows the live mainnet vault") can now be confirmed on the page
+
+## Phase 5 gate update (2026-11-26)
+
+Gate: PASSED. The open criterion, "the Guardian card shows the live mainnet vault", passed once Phase 4 put the vault on Base mainnet. After the user set Steward up from the page on Mainnet, the dashboard showed their real vault and the Guardian card read `(v) ACTIVE`, with the countdown and last activity on Base (the user's screenshot, 2026-11-26). The page has served it from https://steward-reactive.vercel.app/ since the Vercel deploy. Every other Phase 5 criterion passed on 2026-11-16.
+
+## Phase 7 report: Video and submission
+
+Gate: NOT PASSED. Five checklist items need the user and can't be done from here: the demo video, registration in the track, the DoraHacks submission, a non-builder setting up a vault from the page, and the 7-day mainnet run, which ends on 2026-12-03. Everything that could be prepared is ready.
+
+Built
+- `scripts/check-live.mjs` + `scripts/evidence.json` (`make check-live`): a zero-dependency Node script that re-checks every recorded loop from public RPCs, with no keys. It checks that each tx succeeded, that the Rulebook event names its origin tx, that a callback was queued and delivered by Reactive's callback proxy, and that nonces match. It prints a timing table and the live mainnet vault state, and exits non-zero on any failure.
+- `JUDGES.md`: a 10-minute path for judges: the one-command check, mainnet loops, verified source, testnet highlights, where each judging criterion is shown, and how to try it on testnet
+- `docs/DEMO.md`: six timed scenes with click paths, commands, lines to say, fallback hashes and a prep checklist with the funds each wallet needs
+- `docs/SUBMISSION.md`: DoraHacks fields ready to paste, addresses, one loop per rule, and the final checklist
+- `contracts/script/ops/PayTestUsdc.s.sol` (`make pay-test-usdc`): pays test USDC from a listed sender on Base Sepolia, for the demo and for testers (simulated; 0.0000012 ETH)
+- Contracts verified on Sourcify: all five mainnet contracts exact matches; Base Sepolia Heartbeat and MockUSDC exact, executor partial
+- README: live app and judges' links, the mainnet evidence and timing tables, mainnet usage, the verified mainnet addresses, and the new commands
+
+Tests
+- forge test: 124/125 passed (1 fork test skipped without `BASE_RPC`); `forge fmt --check` clean
+- invariants: unchanged since Phase 6 (1,000 runs × 50, all holding); no contract source changed in this phase
+- frontend: vitest 71 passed (no page code changed in this phase)
+- `make check-live`: 68 checks, all passed (4 mainnet loops, 7 testnet loops, live vault)
+
+On-chain evidence
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| No new loops in this phase; every recorded loop re-checked by `make check-live` | | | | |
+
+Decisions and findings
+- Base makes a block every 0.2 s, so Phase 4's "7 Base blocks ≈ 14 s" was wrong: payment to vault takes about 1.4–1.6 s on mainnet. Corrected in TX_HASHES and the Phase 4 report (NOTES §16).
+- Sourcify instead of Basescan for verification: it needs no API key, supports Reactive mainnet and Lasna, and Blockscout shows its results (NOTES §16)
+- Mainnet REACT use measured at ≈ 1.3 REACT/day on quiet hours, as expected (NOTES §16)
+
+Risks and open questions
+- Demo funds: the PC wallet has 0.44 lREACT, and the video needs about 2.3 more (a fresh setup plus one `e2e-phase3` run). Default: get ≈ 0.05 Base Sepolia ETH from a public faucet into `0x1501…0502`, then convert 0.03 at Reactive's faucet. If funds don't come, record Scenes 3 and 4 from the fallback hashes.
+- The first commit is from 2026-11-12 23:33 WAT. Default: confirm the event had started by then; if not, say so in the submission.
+- The mainnet Rulebook's 29.6 REACT lasts about three weeks at 1.3 a day, well past judging. Default: no top-up needed.
+- Basescan still shows the contracts as unverified bytecode (Blockscout and Sourcify show source). Default: leave it, unless you add `BASESCAN_API_KEY` to `.env`; then verification takes one command per contract.
+
+Next
+- You: fund the demo wallets, record the video from `docs/DEMO.md`, and paste the link into README, JUDGES.md and SUBMISSION.md
+- You: ask a friend to follow `JUDGES.md` §6 on testnet and note when it worked
+- You: register in the track and submit from `docs/SUBMISSION.md` by Dec 4. After 2026-12-03, a final `make check-live` and usage update close Phase 6.
