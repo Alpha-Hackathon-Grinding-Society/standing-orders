@@ -13,7 +13,7 @@ SCRIPT := cd contracts && forge script
 	deploy-hello-base deploy-hello-lasna hello-stop-cron \
 	e2e-hello e2e-hello-cron e2e-rule1 e2e-phase3 e2e-claim e2e-guardian-clear e2e-guardian-release \
 	alive pause unpause withdraw propose-beneficiary apply-beneficiary propose-cold-wallet apply-cold-wallet \
-	edit-rules top-up-react withdraw-react check-now status pay-test-usdc \
+	edit-rules top-up-react withdraw-react check-now status pay-test-usdc showcase-mainnet verify-basescan \
 	web-install web-sync web-dev web-check web-e2e check-live
 
 help: ## List targets
@@ -75,6 +75,9 @@ deploy-base: ## Phase 4: shared contracts on Base mainnet (needs explicit approv
 
 deploy-rulebook-reactive: ## Phase 4: your Rulebook on Reactive mainnet (needs explicit approval)
 	$(SCRIPT) script/DeployRulebook.s.sol --rpc-url $(REACTIVE_RPC) --broadcast
+
+showcase-mainnet: ## Second, small mainnet vault: Rule 2 claims and a full Guardian cycle on Base (needs approval; BENEFICIARY)
+	cd contracts && bash script/e2e/showcase.sh
 
 # ---------------------------------------------------------------- end-to-end testnet loops
 
@@ -147,6 +150,9 @@ web-e2e: ## Build the page and run the Playwright smoke test
 	$(WEB) build && $(WEB) test:e2e
 
 # ---------------------------------------------------------------- evidence (Phase 7)
+
+verify-basescan: ## Verify the Base mainnet contracts on Basescan (needs BASESCAN_API_KEY; Sourcify is already done)
+	cd contracts && bash script/ops/verify-basescan.sh
 
 check-live: ## Re-check every recorded loop and the live mainnet vault from public RPCs (no keys; Node 18+)
 	node scripts/check-live.mjs
