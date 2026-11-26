@@ -1,0 +1,89 @@
+{
+  "$comment": "Every reactive loop Steward has recorded, read by scripts/check-live.mjs. Full hashes; the same runs are described in docs/TX_HASHES.md and docs/MAINNET_USAGE.md.",
+  "chains": {
+    "base": { "name": "Base", "rpcs": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"], "explorer": "https://basescan.org" },
+    "reactive": { "name": "Reactive", "rpcs": ["https://mainnet-rpc.rnk.dev/"], "explorer": "https://reactscan.net" },
+    "base-sepolia": { "name": "Base Sepolia", "rpcs": ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"], "explorer": "https://sepolia.basescan.org" },
+    "lasna": { "name": "Lasna", "rpcs": ["https://lasna-rpc.rnk.dev/"], "explorer": "https://lasna.reactscan.net" },
+    "unichain-sepolia": { "name": "Unichain Sepolia", "rpcs": ["https://sepolia.unichain.org", "https://unichain-sepolia-rpc.publicnode.com"], "explorer": "https://sepolia.uniscan.xyz" }
+  },
+  "mainnet": {
+    "user": "0x810fCBF8A695Ffa0e4480207c667995139F33276",
+    "vault": "0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75",
+    "rulebook": "0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a",
+    "rulebookDeployBlock": 10447962,
+    "executor": "0xEaA3CB8cdE5d079CC6da775d21517F7770712036",
+    "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "runningSince": "2026-11-26T01:58:00Z"
+  },
+  "loops": [
+    {
+      "net": "mainnet",
+      "rule": "Rule 1 split: 1 USDC paid, 0.20 saved",
+      "origin": { "chain": "base", "tx": "0xe98c0af12daabde1f1bc4908d79e452e4ef9d81e2e124adf654034a6d70ccd86" },
+      "reactive": { "chain": "reactive", "tx": "0xf32c83d342bdd748710f03576c23986b8d4dd9bd521729e1e19074b022558b81" },
+      "callback": { "chain": "base", "tx": "0x95f8b3c1e0d4498a2e86b215612d4f69790cd9ce27d7392237e67a96eb383eb0" }
+    },
+    {
+      "net": "mainnet",
+      "rule": "Rule 1 split: 0.18 USDC paid, 0.036 saved",
+      "origin": { "chain": "base", "tx": "0xc148e0f4084b8ec28066dd0af587e3a4d47e4e9f40f0b279ed6f8e87c1ea0925" },
+      "reactive": { "chain": "reactive", "tx": "0xfd3a3206cc94e2f4c2a089a2a121fb246c566232c1f7357a191f0611a4f745fb" },
+      "callback": { "chain": "base", "tx": "0xf9b9812bf9c873d8093044727cd483c77ed381fb05026c3454b6bd4ffbb67b0f" }
+    },
+    {
+      "net": "mainnet",
+      "rule": "Guardian: I'm alive resets the clock",
+      "origin": { "chain": "base", "tx": "0x7f090f8fe730f4bb4d90c18eb3c06807708ec5ad503d3c674f9f4bf4257d5696" },
+      "reactive": { "chain": "reactive", "tx": "0xeac133f9259ae9abfc3fb37c019b1927f1823e7c1e042dd80fe619c2722f4a42" }
+    },
+    {
+      "net": "mainnet",
+      "rule": "Rule 1 ignores a look-alike sender (address poisoning)",
+      "reactive": { "chain": "reactive", "tx": "0xf354c11354e969143e7d550397dea80a36d0911e74ca4a5aed8391c65ff9c7b9" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Rule 1 split: 20% of 100 USDC",
+      "origin": { "chain": "base-sepolia", "tx": "0x36a4200afdf67756bb09d2f24dcfba16862ba0ad182acc5f7c851904dc460095" },
+      "reactive": { "chain": "lasna", "tx": "0xda7a63891d09d89812ac5e164a0321437b54f8bcb8fec7fda8660bc2b25a2dc5" },
+      "callback": { "chain": "base-sepolia", "tx": "0x5dfcca7df4f273fcbe0ced13abde6e527b59f9dc3128d37979d79be6e58c53b0" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Rule 1 ignores an unlisted sender",
+      "origin": { "chain": "base-sepolia", "tx": "0x0c02b7c6415dd4ed7552102742b145401bb67d7eb3cfe49e60a561842d139798" },
+      "reactive": { "chain": "lasna", "tx": "0xce4582125e24c26069381b96d52de0cab9bbd0b27727d9d7f0f84ef42c890c46" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Rule 1 split into a vault set up from the page",
+      "origin": { "chain": "base-sepolia", "tx": "0x028b6f771094a4f46e40e2873703a100294b5ac6860827924ce230eb521728a1" },
+      "reactive": { "chain": "lasna", "tx": "0x32fcea5a5b4aae3fe4fb488753c1019fb5ed9cd6228585b6d19feffa88410136" },
+      "callback": { "chain": "base-sepolia", "tx": "0xca46265c602bfd5021a943acce0c3836f36561718983d082581e190cd33bcc88" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Rule 2 claim: vested tokens into the vault",
+      "reactive": { "chain": "lasna", "tx": "0x4a62e41b6ec1aeeff33aaf9fa633127397bea829411f9ac3a711edd13ae65129" },
+      "callback": { "chain": "base-sepolia", "tx": "0xabf27e8ec64fd6ba9cedcf05a4a266196f7ad7428d632da1eb0d8ba7a6783ce4" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Guardian warning after silence",
+      "reactive": { "chain": "lasna", "tx": "0xb2b49600f03332ccb5bbeb508ac508f0492ec7e6420f61232a955f3d00819c15" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Guardian cleared by activity on a second chain",
+      "origin": { "chain": "unichain-sepolia", "tx": "0xf73cdb6848b4ec58c7d1ac358c39d6b7a3f1e4a351455969e3a0a6dc0d2d076f" },
+      "reactive": { "chain": "lasna", "tx": "0xe86ee39820192c3b5fdba3bc578d4750f43b7c53ed27b019115dbb317c1f9642" }
+    },
+    {
+      "net": "testnet",
+      "rule": "Guardian release to the beneficiary after the grace period",
+      "reactive": { "chain": "lasna", "tx": "0xdf94be3488bbe60d96c4c8e5f94a2861424328b3bc27fc53afa2b2dda6b746da" },
+      "callback": { "chain": "base-sepolia", "tx": "0x0e9f2cc81682c7334946b566767b109f02f463c873763be4b4f69b3ab31c99a2" }
+    }
+  ]
+}
