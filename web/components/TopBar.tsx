@@ -9,12 +9,12 @@ import { BracketButton } from "./ui";
 type Props = {
   network: NetworkKey;
   onNetwork: (key: NetworkKey) => void;
-  /** In preview mode the wallet button is replaced by a note. */
-  preview: boolean;
+  /** Preview and watch links replace the wallet button with a note: nothing can be signed there. */
+  mode: "wallet" | "preview" | "watch";
 };
 
 /** Logo, network switch, "Built on Reactive" badge and `[ CONNECT WALLET ]`. */
-export function TopBar({ network, onNetwork, preview }: Props) {
+export function TopBar({ network, onNetwork, mode }: Props) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
       <Link href="/" className="flex items-center gap-3" aria-label="Steward home">
@@ -65,8 +65,10 @@ export function TopBar({ network, onNetwork, preview }: Props) {
           <span className="sr-only">(opens reactive.network in a new tab)</span>
         </a>
 
-        {preview ? (
+        {mode === "preview" ? (
           <span className="px-3 text-warning">[!] Preview</span>
+        ) : mode === "watch" ? (
+          <span className="px-3 text-maya">&gt;&gt; Watching</span>
         ) : (
           <ConnectButton.Custom>
             {({ account, chain, openConnectModal, openAccountModal, mounted }) => {

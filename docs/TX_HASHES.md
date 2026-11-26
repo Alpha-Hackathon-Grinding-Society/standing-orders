@@ -19,7 +19,7 @@ The user's own wallet `0x810fCBF8A695Ffa0e4480207c667995139F33276` set up Stewar
 | Permit + createVault (signed on the page) | Base | [0x1977fc16…5a3d](https://basescan.org/tx/0x1977fc164158bb78d7914caca6233073c56927fa37ef0f7f90e22fcba2a65a3d) | Vault `0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75`, `UserRegistered`, allowance 5 USDC |
 | Guardian activity from the setup | Reactive | [0x3e6fa50e…fd2a](https://reactscan.net/tx/0x3e6fa50e909f4531dc03fb0de1aee6d6b3d2c9b1a320ecb6d4fc9b3179bffd2a) | `ActivityRecorded` on Base |
 
-### First real Rule 1 split (1 USDC from the listed sender → 0.20 USDC saved, 7 Base blocks ≈ 14 s from payment to vault)
+### First real Rule 1 split (1 USDC from the listed sender → 0.20 USDC saved, 7 Base blocks ≈ 1.4 s from payment to vault; Base blocks are 0.2 s)
 
 | Step | Network | Tx | Result |
 | --- | --- | --- | --- |

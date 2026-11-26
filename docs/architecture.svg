@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="t d">
+  <title id="t">Steward architecture</title>
+  <desc id="d">Events from Base and Arbitrum, and cron ticks, reach the user's own Rulebook on Reactive Network. The Rulebook sends callbacks through Reactive's proxy to the OrdersExecutor on Base, which moves money only into the user's vault, on to their cold wallet, or to their beneficiary after a full Guardian cycle.</desc>
+  <defs>
+    <marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="rgba(245,245,247,0.7)"/></marker>
+    <marker id="a-maya" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#62D0FF"/></marker>
+    <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#00C853"/></marker>
+    <marker id="a-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#F5A524"/></marker>
+    <linearGradient id="rb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#62D0FF"/><stop offset="0.5" stop-color="#3C2EFF"/><stop offset="1" stop-color="#CBB5FF"/>
+    </linearGradient>
+    <style>
+      .sans { font-family: Inter, "Segoe UI", system-ui, Helvetica, Arial, sans-serif; }
+      .mono { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .panel { fill: #101010; stroke: rgba(245,245,247,0.20); }
+      .box { fill: #1C1C1D; stroke: rgba(245,245,247,0.20); }
+      .label { font-size: 13px; fill: rgba(245,245,247,0.50); letter-spacing: 0.04em; }
+      .name { font-size: 16px; fill: #F5F5F7; }
+      .big { font-size: 19px; fill: #F5F5F7; }
+      .sub { font-size: 13px; fill: rgba(245,245,247,0.70); }
+      .data { font-size: 12px; fill: rgba(245,245,247,0.55); }
+      .row { font-size: 13px; fill: rgba(245,245,247,0.80); }
+      .edge { font-size: 11px; fill: rgba(245,245,247,0.70); }
+      .line { fill: none; stroke: rgba(245,245,247,0.55); stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="680" fill="#000"/>
+  <text x="32" y="44" class="mono label">// STEWARD · EVERY DECISION IN YOUR OWN REACTIVE CONTRACT · NO BOT, NO SERVER, NO HOT KEY</text>
+
+  <!-- Origins -->
+  <rect x="32" y="72" width="320" height="568" rx="12" class="panel"/>
+  <text x="52" y="104" class="mono label">// BASE + ARBITRUM · WHAT YOU DO</text>
+  <rect x="52" y="150" width="280" height="98" rx="8" class="box"/>
+  <text x="68" y="180" class="sans name">USDC paid to you</text>
+  <text x="68" y="202" class="sans sub">by a sender you listed</text>
+  <text x="68" y="230" class="mono data">Transfer · to = you</text>
+  <rect x="52" y="298" width="280" height="154" rx="8" class="box"/>
+  <text x="68" y="328" class="sans name">Your signed activity</text>
+  <text x="68" y="352" class="sans sub">transfers and approvals</text>
+  <text x="68" y="374" class="sans sub">I'm alive · vault deposit, withdraw</text>
+  <text x="68" y="396" class="sans sub">pause and unpause</text>
+  <text x="68" y="430" class="mono data">filtered on your address</text>
+  <text x="52" y="590" class="sans data">A plain ETH send emits no event,</text>
+  <text x="52" y="608" class="sans data">so it does not count: use I'm alive.</text>
+
+  <!-- Reactive -->
+  <rect x="440" y="72" width="320" height="568" rx="12" class="panel"/>
+  <text x="460" y="104" class="mono label">// REACTIVE NETWORK</text>
+  <rect x="460" y="150" width="280" height="72" rx="8" class="box"/>
+  <text x="476" y="180" class="sans name">Cron ticks</text>
+  <text x="476" y="204" class="mono data">system contract · Cron1000</text>
+  <rect x="460" y="272" width="280" height="262" rx="10" fill="#101010" stroke="url(#rb)" stroke-width="2"/>
+  <text x="478" y="306" class="sans big">Your Rulebook</text>
+  <text x="478" y="328" class="sans sub">one per user, deployed from your wallet</text>
+  <text x="478" y="368" class="mono row"><tspan fill="#62D0FF">Rule 1</tspan>  split income</text>
+  <text x="478" y="396" class="mono row"><tspan fill="#62D0FF">Rule 2</tspan>  claim vesting</text>
+  <text x="478" y="424" class="mono row"><tspan fill="#62D0FF">Guardian</tspan></text>
+  <text x="478" y="446" class="mono row"><tspan fill="#1A9F44">(v)</tspan> Active <tspan fill="rgba(245,245,247,0.5)">→</tspan> <tspan fill="#F5A524">[!]</tspan> Warning</text>
+  <text x="478" y="468" class="mono row"><tspan fill="rgba(245,245,247,0.5)">→</tspan> <tspan fill="#CBB5FF">(v)</tspan> Released</text>
+  <text x="478" y="508" class="sans data">decides every action · pays its own way in REACT</text>
+
+  <!-- Destination -->
+  <rect x="848" y="72" width="320" height="568" rx="12" class="panel"/>
+  <text x="868" y="104" class="mono label">// BASE · WHERE MONEY MOVES</text>
+  <rect x="868" y="150" width="280" height="72" rx="8" class="box"/>
+  <text x="884" y="180" class="sans name">OrdersExecutor</text>
+  <text x="884" y="204" class="mono data">proxy · your Rulebook · fresh nonce</text>
+  <rect x="868" y="262" width="140" height="58" rx="8" class="box"/>
+  <text x="938" y="287" text-anchor="middle" class="sans sub">Your vesting</text>
+  <text x="938" y="306" text-anchor="middle" class="sans sub">contract</text>
+  <rect x="868" y="360" width="280" height="84" rx="8" fill="#101010" stroke="#00C853" stroke-width="1.5"/>
+  <text x="884" y="392" class="sans big">Your SavingsVault</text>
+  <text x="884" y="416" class="sans sub">withdraw any time, even paused</text>
+  <rect x="868" y="490" width="130" height="56" rx="8" class="box"/>
+  <text x="933" y="523" text-anchor="middle" class="sans sub">Cold wallet</text>
+  <rect x="1018" y="490" width="130" height="56" rx="8" class="box" stroke="#F5A524"/>
+  <text x="1083" y="523" text-anchor="middle" class="sans sub">Beneficiary</text>
+  <text x="868" y="590" class="sans data" fill="#F5A524">Beneficiary only after Warning and a full</text>
+  <text x="868" y="608" class="sans data" fill="#F5A524">grace period of silence. Changes wait 24 h.</text>
+
+  <!-- Edges: origins and cron into the Rulebook -->
+  <path d="M332 199 C 400 199, 400 330, 458 330" class="line" marker-end="url(#a-ink)"/>
+  <text x="372" y="252" class="mono edge">event</text>
+  <path d="M332 375 C 400 375, 400 396, 458 396" class="line" marker-end="url(#a-ink)"/>
+  <text x="372" y="368" class="mono edge">event</text>
+  <path d="M600 222 L 600 270" class="line" marker-end="url(#a-ink)"/>
+  <text x="608" y="252" class="mono edge">tick</text>
+
+  <!-- Callback -->
+  <path d="M740 330 C 800 330, 800 186, 866 186" fill="none" stroke="#62D0FF" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#a-maya)"/>
+  <text x="770" y="166" class="mono edge" fill="#62D0FF">callback</text>
+  <text x="770" y="180" class="mono edge" fill="#62D0FF">via proxy</text>
+
+  <!-- Money moves -->
+  <path d="M938 222 L 938 260" class="line" marker-end="url(#a-ink)"/>
+  <text x="946" y="246" class="mono edge">claim</text>
+  <path d="M938 320 L 938 358" fill="none" stroke="#00C853" stroke-width="1.5" marker-end="url(#a-green)"/>
+  <text x="946" y="344" class="mono edge">vested</text>
+  <path d="M1078 222 L 1078 358" fill="none" stroke="#00C853" stroke-width="1.5" marker-end="url(#a-green)"/>
+  <text x="1086" y="294" class="mono edge">your share</text>
+  <path d="M933 444 L 933 488" class="line" marker-end="url(#a-ink)"/>
+  <text x="941" y="470" class="mono edge">if set</text>
+  <path d="M1083 444 L 1083 488" fill="none" stroke="#F5A524" stroke-width="1.5" marker-end="url(#a-amber)"/>
+  <text x="1091" y="470" class="mono edge" fill="#F5A524">release</text>
+</svg>

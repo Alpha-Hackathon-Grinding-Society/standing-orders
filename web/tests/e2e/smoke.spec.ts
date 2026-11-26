@@ -10,6 +10,23 @@ test("without a wallet, the page invites a connection", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Built on Reactive/ })).toBeVisible();
 });
 
+test("A watch link shows that vault read-only, with no wallet button", async ({ page }) => {
+  // Chain reads are left to fail here (no network in this test); the read-only frame must not depend on them.
+  await page.route(/rpc|base\.org|rnk\.dev|publicnode|llamarpc/, (route) => route.abort());
+  await page.goto("/?watch=0x810fcbf8a695ffa0e4480207c667995139f33276&net=mainnet");
+  await expect(page.getByRole("status").getByText(">> WATCHING")).toBeVisible();
+  await expect(page.getByText("A read-only view of 0x810fCB...39F33276")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Network and wallet" }).getByText(">> Watching")).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ Connect wallet ]" })).toHaveCount(0);
+});
+
+test("A watch link without a valid address says so", async ({ page }) => {
+  await page.goto("/?watch=0x1234");
+  await expect(page.getByRole("alert").getByText("(x) FAILED")).toBeVisible();
+  await expect(page.getByText("This watch link has no valid 0x address")).toBeVisible();
+  await expect(page.getByRole("button", { name: "[ Connect wallet ]" })).toBeVisible();
+});
+
 test("Active: vault balance, green state, countdown to warning and I'm alive", async ({ page }, info) => {
   await page.goto("/?preview=active");
   await expect(page.getByRole("alert").getByText("[!] PREVIEW")).toBeVisible();

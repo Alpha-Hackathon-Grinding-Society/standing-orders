@@ -7,7 +7,8 @@ import {VaultFactory} from "../../src/VaultFactory.sol";
 
 /// @notice Second setup step on Base: signs the USDC permit for the executor and creates the caller's vault,
 ///         registering the Rulebook from deployments/rulebook-{lasna|reactive}.json.
-/// @dev Env: BENEFICIARY (required), PERMIT_CAP [1000e6] = total USDC the executor may ever pull for Rule 1.
+/// @dev Env: BENEFICIARY (required), PERMIT_CAP [1000e6] = total USDC the executor may ever pull for Rule 1,
+///      RULEBOOK_FILE [rulebook-lasna | rulebook-reactive] = the deployments/<name>.json DeployRulebook wrote.
 ///      Usage: forge script script/ops/CreateVault.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast
 contract CreateVault is Script {
     bytes32 internal constant PERMIT_TYPEHASH =
@@ -20,7 +21,8 @@ contract CreateVault is Script {
         require(!mainnet || vm.envOr("STEWARD_MAINNET_APPROVED", false), "CreateVault: mainnet needs explicit approval");
 
         string memory base = vm.readFile(string.concat("deployments/", mainnet ? "base" : "base-sepolia", ".json"));
-        string memory rb = vm.readFile(string.concat("deployments/rulebook-", mainnet ? "reactive" : "lasna", ".json"));
+        string memory rbName = vm.envOr("RULEBOOK_FILE", string(mainnet ? "rulebook-reactive" : "rulebook-lasna"));
+        string memory rb = vm.readFile(string.concat("deployments/", rbName, ".json"));
         VaultFactory factory = VaultFactory(vm.parseJsonAddress(base, ".vaultFactory"));
         address usdc = vm.parseJsonAddress(base, ".usdc");
         address rulebook = vm.parseJsonAddress(rb, ".rulebook");

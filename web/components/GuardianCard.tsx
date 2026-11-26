@@ -15,12 +15,13 @@ import { Label, Notice, Panel, PrimaryButton, StatusToken } from "./ui";
 export function GuardianCard({
   data,
   now,
-  preview,
+  readOnly,
   onDone,
 }: {
   data: StewardData;
   now: number;
-  preview: boolean;
+  /** Preview and watch links show the button but can't sign. */
+  readOnly: boolean;
   onDone: () => void;
 }) {
   const network = NETWORKS[data.network];
@@ -82,7 +83,7 @@ export function GuardianCard({
 
       {view.word !== "RELEASED" && view.word !== "OFF" ? (
         <div className="flex flex-col gap-2">
-          <PrimaryButton onClick={imAlive} disabled={preview || tx.state === "pending"} className="self-start">
+          <PrimaryButton onClick={imAlive} disabled={readOnly || tx.state === "pending"} className="self-start">
             I&apos;m alive
           </PrimaryButton>
           <p className="text-sm text-ink-muted">

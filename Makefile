@@ -13,8 +13,8 @@ SCRIPT := cd contracts && forge script
 	deploy-hello-base deploy-hello-lasna hello-stop-cron \
 	e2e-hello e2e-hello-cron e2e-rule1 e2e-phase3 e2e-claim e2e-guardian-clear e2e-guardian-release \
 	alive pause unpause withdraw propose-beneficiary apply-beneficiary propose-cold-wallet apply-cold-wallet \
-	edit-rules top-up-react withdraw-react check-now status \
-	web-install web-sync web-dev web-check web-e2e
+	edit-rules top-up-react withdraw-react check-now status pay-test-usdc showcase-mainnet verify-basescan \
+	web-install web-sync web-dev web-check web-e2e check-live
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-26s %s\n", $$1, $$2}'
@@ -76,6 +76,9 @@ deploy-base: ## Phase 4: shared contracts on Base mainnet (needs explicit approv
 deploy-rulebook-reactive: ## Phase 4: your Rulebook on Reactive mainnet (needs explicit approval)
 	$(SCRIPT) script/DeployRulebook.s.sol --rpc-url $(REACTIVE_RPC) --broadcast
 
+showcase-mainnet: ## Second, small mainnet vault: Rule 2 claims and a full Guardian cycle on Base (needs approval; BENEFICIARY)
+	cd contracts && bash script/e2e/showcase.sh
+
 # ---------------------------------------------------------------- end-to-end testnet loops
 
 e2e-hello: ## Phase 1: transfer on Base Sepolia -> Lasna -> callback; prints all three tx hashes
@@ -89,6 +92,9 @@ e2e-rule1: ## Phase 2: listed and unlisted income -> Lasna -> vault; prints all 
 
 e2e-phase3: ## Phase 3: claim, Guardian clear (from Unichain) and Guardian release on one Rulebook; set BENEFICIARY
 	cd contracts && bash script/e2e/phase3.sh
+
+pay-test-usdc: ## Testnet demo: pay TO_ADDRESS some test USDC (PAY_AMOUNT, default 10) from this wallet, a listed sender
+	cd contracts && forge script script/ops/PayTestUsdc.s.sol --rpc-url $(BASE_SEPOLIA_RPC) --broadcast
 
 # e2e-claim, e2e-guardian-clear and e2e-guardian-release run in sequence inside e2e-phase3 (one Rulebook, one vault).
 e2e-claim e2e-guardian-clear e2e-guardian-release: e2e-phase3
@@ -142,3 +148,11 @@ web-check: ## Lint, typecheck, format check and unit tests for the page
 	$(WEB) lint && $(WEB) typecheck && $(WEB) format:check && $(WEB) test
 web-e2e: ## Build the page and run the Playwright smoke test
 	$(WEB) build && $(WEB) test:e2e
+
+# ---------------------------------------------------------------- evidence (Phase 7)
+
+verify-basescan: ## Verify the Base mainnet contracts on Basescan (needs BASESCAN_API_KEY; Sourcify is already done)
+	cd contracts && bash script/ops/verify-basescan.sh
+
+check-live: ## Re-check every recorded loop and the live mainnet vault from public RPCs (no keys; Node 18+)
+	node scripts/check-live.mjs

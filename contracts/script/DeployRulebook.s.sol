@@ -14,6 +14,8 @@ import {ReactiveConstants} from "../src/libraries/ReactiveConstants.sol";
 ///      Guardian: SILENCE_PERIOD [90 days; 0 = off], GRACE_PERIOD [14 days], GUARDIAN_CHECK_INTERVAL [1 hour],
 ///      WATCHED_CHAINS [Base Sepolia + Unichain Sepolia on Lasna; Base + Arbitrum on mainnet].
 ///      RULEBOOK_CRON [Cron100 on Lasna, Cron1000 on mainnet; 0 = none], RULEBOOK_FUNDING_WEI [0.5 ether].
+///      RULEBOOK_OUT [rulebook-lasna | rulebook-reactive]: the deployments/<name>.json this run writes, so a second
+///      wallet's Rulebook never overwrites the first one's record.
 ///      Usage: make deploy-rulebook-lasna
 contract DeployRulebook is Script {
     uint256 internal constant REACTIVE_MAINNET = 1597;
@@ -62,7 +64,8 @@ contract DeployRulebook is Script {
         vm.serializeUint(j, "gracePeriod", config.gracePeriod);
         vm.serializeUint(j, "cronTopic", config.cronTopic);
         string memory out = vm.serializeAddress(j, "rulebook", address(rulebook));
-        vm.writeJson(out, string.concat("deployments/rulebook-", mainnet ? "reactive" : "lasna", ".json"));
+        string memory name = vm.envOr("RULEBOOK_OUT", string(mainnet ? "rulebook-reactive" : "rulebook-lasna"));
+        vm.writeJson(out, string.concat("deployments/", name, ".json"));
     }
 
     function _config(string memory base, address vault, bool mainnet) internal view returns (Rulebook.Config memory) {
