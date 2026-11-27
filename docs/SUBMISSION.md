@@ -44,7 +44,7 @@ Set It and Forget It
 ## Images
 
 - Architecture: `docs/architecture.png` (also `docs/architecture.svg`)
-- Screenshot of the live mainnet vault through the watch link: `docs/screenshots/live-mainnet-vault.png` (2026-11-26)
+- Screenshot of the live mainnet vault through the watch link: `docs/screenshots/live-mainnet-vault.png` (2026-11-27, with Guardian activity on Base and Arbitrum)
 
 ## Deployed contracts
 
