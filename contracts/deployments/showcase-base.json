@@ -1,0 +1,8 @@
+{
+  "amount": 500000,
+  "duration": 10800,
+  "start": 1795802476,
+  "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "user": "0x1501D3884C2bEBefBfe4D4B3D026E84c9Cfb0502",
+  "vesting": "0x1FF8Ec397C9CeB2c9c78Fac2e8b8C22D9963C831"
+}
