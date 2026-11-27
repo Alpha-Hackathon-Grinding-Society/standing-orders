@@ -19,6 +19,10 @@ Steward's real vault on Base mainnet, owned by the builder's own wallet `0x810fC
 
 The ignored payment was an address-poisoning attempt: dust from an address made to look like the listed sender `0x69Df…32c9` (same first and last characters). Rule 1 matches the full address, so it saved nothing.
 
+## Second vault: the mainnet showcase (from 2026-11-27 17:57 UTC)
+
+A small second vault owned by the builder's PC wallet `0x1501…0502`, set up to show Rule 2 and the Guardian's full cycle on mainnet within one evening. It holds a real `VestingWallet` with 0.5 USDC, and its beneficiary is the builder's main wallet. Setup hashes and every step are in `docs/TX_HASHES.md` ("Mainnet showcase").
+
 ## REACT spent
 
 Rulebook funded with 30 REACT at 01:58 UTC on 2026-11-26 (deploy fee paid separately by the wallet). Read the balance with `make status NET=reactive`, or with no keys at all, `make check-live`.

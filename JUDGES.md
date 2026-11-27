@@ -39,7 +39,7 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 
 **What it costs to run.** Measured on mainnet: the Rulebook spends about **1.3 REACT a day** on quiet days (about **$0.003 a day**), and each automatic split costs the executor about **0.0000011 ETH** of Base gas (about **$0.002**). Prices from 2026-11-26: REACT $0.0020, ETH $1,698. You pay no gas yourself for anything Steward does.
 
-**Verified source.** Every mainnet contract is verified on Sourcify with an **exact match** (same source, compiler settings and metadata):
+**Verified source.** The four Base contracts show their source on **Basescan** (open any address link and choose *Contract*). Every mainnet contract, the Rulebook on Reactive included, is also verified on Sourcify as an **exact match** (same source, compiler settings and metadata):
 
 | Contract | Network | Address | Source |
 | --- | --- | --- | --- |
@@ -48,6 +48,9 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 | Heartbeat | Base | `0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447` | [Sourcify](https://repo.sourcify.dev/8453/0xFBD66e0C9Db8dA83C45c38AB859D12C228AC6447) |
 | SavingsVault (the builder's) | Base | `0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75` | [Sourcify](https://repo.sourcify.dev/8453/0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75) |
 | Rulebook (the builder's) | Reactive | `0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a` | [Sourcify](https://repo.sourcify.dev/1597/0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a) |
+
+> "I just need to transfer to my wallet, and Steward saves for me without me knowing."
+> — Daniel, builder and first user
 
 ## 3. Testnet: all three rules, including the Guardian's full cycle
 

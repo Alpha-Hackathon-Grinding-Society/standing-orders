@@ -4,6 +4,19 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
+## Mainnet showcase: Rule 2 and a full Guardian cycle with real USDC (2026-11-27)
+
+Approved by the user ("deploy to mainnet", 2026-11-27) with 0.5 USDC and 7 REACT, sent from their main wallet to the PC wallet `0x1501…0502`, which owns this second vault. Settings: a real OpenZeppelin `VestingWallet` vests 0.5 USDC from 18:01 to 21:01 UTC. The Rulebook claims hourly; the Guardian warns after 4 h of silence and releases after 1 h of grace, checked every 15 min on `Cron1000`. The beneficiary is the user's main wallet `0x810f…3276`. Runner: `script/e2e/showcase.sh` (`make showcase-mainnet`).
+
+| Step | Network | Tx | Result |
+| --- | --- | --- | --- |
+| VestingWallet deploy | Base | [0x29fe1f63…1cb8](https://basescan.org/tx/0x29fe1f63dbf39061b8201898d25859c6448fd3662a9189d2d92dd0b86aab1cb8) | `0x1FF8Ec397C9CeB2c9c78Fac2e8b8C22D9963C831` |
+| 0.5 USDC into the vesting wallet | Base | [0xf3b20e02…e5fc6](https://basescan.org/tx/0xf3b20e0244142ce5af09ff8d9e8d4bf175a85390a26f5e5900572f35274e5fc6) | balance 0.5 USDC |
+| Rulebook deploy | Reactive | [0xa552f4a4…523c](https://reactscan.net/tx/0xa552f4a41b5cb66d7765e985fc407cfc32a7b4e2777b2167cbd7991c8258523c) | `0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686`, 5 REACT. It shares its address with the Base VaultFactory: both are the PC wallet's first contract on their chains. |
+| Permit + createVault | Base | [0x04e265b6…80e2b](https://basescan.org/tx/0x04e265b6f970694dc727dacf6ebdd4e14c415adbc84f224dfb32ce21cac80e2b) | vault `0xBBEd82D10845f688CFe3130444f445686A7182a8`, allowance 1 USDC, beneficiary `0x810f…3276` |
+
+Claims, the warning and the release follow on their own; their hashes are added below as they land.
+
 ## Phase 4: mainnet vault, Base ↔ Reactive mainnet (2026-11-26)
 
 The user's own wallet `0x810fCBF8A695Ffa0e4480207c667995139F33276` set up Steward from the page and signed every step; no key for it exists on this machine. Shared contracts were deployed by the PC wallet `0x1501…0502`. Callback proxy `0xCc780DdE33f56f55dE778D42c930959374a4a068` rechecked on Reactive's Origins and Destinations page the same day. Settings: 20% of USDC from the listed sender (the user's second account, Steward Payer `0x69Dfdc4f7B27Bbc167C43f7B86A94b318dFA32c9`), at most 5 USDC per 30 days; permit budget 5 USDC; Claim and secure off; Guardian 90 d / 14 d, checked hourly, watching Base and Arbitrum, beneficiary `0x09440538472AaE45AE7e2f509dFf6d23F4b01A08`; `Cron1000`; Rulebook funded with 30 REACT.
