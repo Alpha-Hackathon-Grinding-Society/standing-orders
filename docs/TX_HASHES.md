@@ -27,6 +27,17 @@ The user's own wallet `0x810fCBF8A695Ffa0e4480207c667995139F33276` set up Stewar
 | Reactive: Rulebook reacts | Reactive | [0xf32c83d3…8b81](https://reactscan.net/tx/0xf32c83d342bdd748710f03576c23986b8d4dd9bd521729e1e19074b022558b81) | `SplitRequested`, `originTxHash` = the origin tx above, amount 0.20 USDC, nonce 1 |
 | Callback: executor moves the share | Base | [0x95f8b3c1…3eb0](https://basescan.org/tx/0x95f8b3c1e0d4498a2e86b215612d4f69790cd9ce27d7392237e67a96eb383eb0) | `SplitExecuted`, 0.20 USDC into the vault, block 62,344,804 |
 
+### Guardian activity from a second chain: Arbitrum mainnet (2026-11-27)
+
+The owner signed `approve(own address, 0)` on Arbitrum's USDC from MetaMask. It grants nothing, but `Approval(owner = user)` matches the Rulebook's contract-wildcard subscription on Arbitrum. Each one was recorded on Reactive within about a second.
+
+| Step | Network | Tx | Result |
+| --- | --- | --- | --- |
+| Origin: approval 1 | Arbitrum | [0xd63845c2…84a4](https://arbiscan.io/tx/0xd63845c299bf3023c0a571ba914fbc89eb9d6f22331d921b09be306e1e2e84a4) | `Approval`, 17:12:32 UTC |
+| Reactive: Rulebook records it | Reactive | [0x8d99bf34…1401](https://reactscan.net/tx/0x8d99bf34e30adb81882d6a6e472a3fbd982169aa61197d8cd05414a20c181401) | `ActivityRecorded(42161, origin)`, 17:12:33 UTC |
+| Origin: approval 2 | Arbitrum | [0x8a813ac0…aa33](https://arbiscan.io/tx/0x8a813ac0f950007a3698f7d4013b2649da362c205f8bf0284b8d06d1d419aa33) | `Approval`, 17:12:45 UTC |
+| Reactive: Rulebook records it | Reactive | [0xabbcef97…f183](https://reactscan.net/tx/0xabbcef9766c7816a14cb2930915b030604b311cdaf0bbc0bb20a0ffe0036f183) | `ActivityRecorded(42161, origin)`, 17:12:44 UTC (the two chains' clocks differ by about a second) |
+
 ## Phase 5: a vault set up end to end from the page (2026-11-16)
 
 A second MetaMask mobile account, `0xc8180E32107C82E84Ea8a1256Fab39cC616bf0b7`, with no vault and no key on this machine, set up Steward from the Next.js page (`web/`, served on the LAN) and signed every step there. Settings: 20% of USDC from the listed sender `0x1501…0502`, at most 25 USDC per 30 days; permit budget 100 USDC; Claim and secure off; Guardian 90 d / 14 d with beneficiary `0x810f…3276`; `Cron1000`; Rulebook funded with 0.1 lREACT. The account was funded beforehand from the PC wallet with 0.5 lREACT ([0x6ff632f4…ee8c](https://lasna.reactscan.net/tx/0x6ff632f4caf22266676d536a1b8932681db8b847ba4b8859b36ee13eae05ee8c)) and 0.003 ETH ([0x39deafc2…4d43](https://sepolia.basescan.org/tx/0x39deafc2893d124eb5a1f0d0ccfed252ec6bb07b62722de2efa1257d53b84d43)).

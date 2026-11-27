@@ -172,6 +172,23 @@ async function checkLoop(loop) {
 
 // ------------------------------------------------------------------ live mainnet vault
 
+// Reactive's public RPC answers eth_getLogs for at most ~25,000 blocks (measured 2026-11-27), so the Rulebook's
+// history since its deploy block is read in 20,000-block windows, five at a time.
+async function rulebookLogs(address, fromBlock) {
+  const WINDOW = 20_000;
+  const head = Number(await rpc("reactive", "eth_blockNumber", []));
+  const windows = [];
+  for (let from = fromBlock; from <= head; from += WINDOW) windows.push([from, Math.min(from + WINDOW - 1, head)]);
+  const logs = [];
+  for (let i = 0; i < windows.length; i += 5) {
+    const batch = windows.slice(i, i + 5).map(([from, to]) =>
+      rpc("reactive", "eth_getLogs", [{ address, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }]),
+    );
+    for (const part of await Promise.all(batch)) logs.push(...part);
+  }
+  return logs;
+}
+
 async function liveMainnet() {
   const m = evidence.mainnet;
   const now = Math.floor(Date.now() / 1000);
@@ -184,9 +201,7 @@ async function liveMainnet() {
   );
   const react = BigInt(await rpc("reactive", "eth_getBalance", [m.rulebook, "latest"]));
   const debt = await callUint("reactive", SYSTEM_CONTRACT, "0x9b6c56ec" + pad(m.rulebook));
-  const logs = await rpc("reactive", "eth_getLogs", [
-    { address: m.rulebook, fromBlock: "0x" + m.rulebookDeployBlock.toString(16), toBlock: "latest" },
-  ]);
+  const logs = await rulebookLogs(m.rulebook, m.rulebookDeployBlock);
 
   const counts = {};
   let requested = 0n;

@@ -3,6 +3,7 @@
   "chains": {
     "base": { "name": "Base", "rpcs": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"], "explorer": "https://basescan.org" },
     "reactive": { "name": "Reactive", "rpcs": ["https://mainnet-rpc.rnk.dev/"], "explorer": "https://reactscan.net" },
+    "arbitrum": { "name": "Arbitrum", "rpcs": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"], "explorer": "https://arbiscan.io" },
     "base-sepolia": { "name": "Base Sepolia", "rpcs": ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"], "explorer": "https://sepolia.basescan.org" },
     "lasna": { "name": "Lasna", "rpcs": ["https://lasna-rpc.rnk.dev/"], "explorer": "https://lasna.reactscan.net" },
     "unichain-sepolia": { "name": "Unichain Sepolia", "rpcs": ["https://sepolia.unichain.org", "https://unichain-sepolia-rpc.publicnode.com"], "explorer": "https://sepolia.uniscan.xyz" }
@@ -36,6 +37,12 @@
       "rule": "Guardian: I'm alive resets the clock",
       "origin": { "chain": "base", "tx": "0x7f090f8fe730f4bb4d90c18eb3c06807708ec5ad503d3c674f9f4bf4257d5696" },
       "reactive": { "chain": "reactive", "tx": "0xeac133f9259ae9abfc3fb37c019b1927f1823e7c1e042dd80fe619c2722f4a42" }
+    },
+    {
+      "net": "mainnet",
+      "rule": "Guardian: activity on a second chain (Arbitrum) is recorded",
+      "origin": { "chain": "arbitrum", "tx": "0xd63845c299bf3023c0a571ba914fbc89eb9d6f22331d921b09be306e1e2e84a4" },
+      "reactive": { "chain": "reactive", "tx": "0x8d99bf34e30adb81882d6a6e472a3fbd982169aa61197d8cd05414a20c181401" }
     },
     {
       "net": "mainnet",

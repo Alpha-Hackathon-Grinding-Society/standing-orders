@@ -14,7 +14,7 @@ git clone https://github.com/Alpha-Hackathon-Grinding-Society/steward.git && cd 
 node scripts/check-live.mjs        # or: make check-live   (Node 18+, nothing to install)
 ```
 
-For each reactive loop listed in [`scripts/evidence.json`](scripts/evidence.json) (4 on mainnet and 7 on testnet), the script reads the receipts from public RPCs. It checks that:
+For each reactive loop listed in [`scripts/evidence.json`](scripts/evidence.json) (5 on mainnet and 7 on testnet), the script reads the receipts from public RPCs. It checks that:
 
 1. every transaction succeeded;
 2. the Reactive transaction carries the Rulebook's own event, and **that event names the origin transaction it reacted to** (`originTxHash` is an indexed topic);
@@ -32,6 +32,7 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 | Rule 1: 1 USDC paid, 0.20 saved | [0xe98c…cd86](https://basescan.org/tx/0xe98c0af12daabde1f1bc4908d79e452e4ef9d81e2e124adf654034a6d70ccd86) | [0xf32c…8b81](https://reactscan.net/tx/0xf32c83d342bdd748710f03576c23986b8d4dd9bd521729e1e19074b022558b81) | [0x95f8…3eb0](https://basescan.org/tx/0x95f8b3c1e0d4498a2e86b215612d4f69790cd9ce27d7392237e67a96eb383eb0) |
 | Rule 1: 0.18 USDC paid, 0.036 saved | [0xc148…0925](https://basescan.org/tx/0xc148e0f4084b8ec28066dd0af587e3a4d47e4e9f40f0b279ed6f8e87c1ea0925) | [0xfd3a…45fb](https://reactscan.net/tx/0xfd3a3206cc94e2f4c2a089a2a121fb246c566232c1f7357a191f0611a4f745fb) | [0xf9b9…7b0f](https://basescan.org/tx/0xf9b9812bf9c873d8093044727cd483c77ed381fb05026c3454b6bd4ffbb67b0f) |
 | Guardian: I'm alive resets the clock | [0x7f09…5696](https://basescan.org/tx/0x7f090f8fe730f4bb4d90c18eb3c06807708ec5ad503d3c674f9f4bf4257d5696) | [0xeac1…4a42](https://reactscan.net/tx/0xeac133f9259ae9abfc3fb37c019b1927f1823e7c1e042dd80fe619c2722f4a42) | none needed |
+| Guardian: a signed action on **Arbitrum** (second chain) | [0xd638…84a4](https://arbiscan.io/tx/0xd63845c299bf3023c0a571ba914fbc89eb9d6f22331d921b09be306e1e2e84a4) (Arbitrum) | [0x8d99…1401](https://reactscan.net/tx/0x8d99bf34e30adb81882d6a6e472a3fbd982169aa61197d8cd05414a20c181401) | none needed |
 | Rule 1 ignored a look-alike sender (an address-poisoning attempt) | `0x9b0f…b960` (named in the event) | [0xf354…c7b9](https://reactscan.net/tx/0xf354c11354e969143e7d550397dea80a36d0911e74ca4a5aed8391c65ff9c7b9) | none, by design |
 
 **Speed.** From the moment a payment lands to the moment the share sits in the vault takes **7–8 Base blocks, about 1.5 seconds** on mainnet and 8–10 blocks (about 2 seconds) on testnet. Base makes a block every 0.2 s. The full table, measured from block timestamps, is printed by the script.
