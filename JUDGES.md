@@ -39,7 +39,7 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 
 **What it costs to run.** Measured on mainnet: the Rulebook spends about **1.3 REACT a day** on quiet days (about **$0.003 a day**), and each automatic split costs the executor about **0.0000011 ETH** of Base gas (about **$0.002**). Prices from 2026-11-26: REACT $0.0020, ETH $1,698. You pay no gas yourself for anything Steward does.
 
-**Verified source.** Every mainnet contract is verified on Sourcify with an **exact match** (same source, compiler settings and metadata):
+**Verified source.** The four Base contracts show their source on **Basescan** (open any address link and choose *Contract*). Every mainnet contract, the Rulebook on Reactive included, is also verified on Sourcify as an **exact match** (same source, compiler settings and metadata):
 
 | Contract | Network | Address | Source |
 | --- | --- | --- | --- |

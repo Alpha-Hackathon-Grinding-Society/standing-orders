@@ -200,7 +200,7 @@ Add `?preview=active` (or `warning`, `released`, `paused`, `lowreact`, `novault`
 
 **Lasna**: each user has their own Rulebook. The one set up from the app in the test above is [`0x80e7C5958626daAE7e5Be8A99F2E30B2226c7F74`](https://lasna.reactscan.net/address/0x80e7C5958626daAE7e5Be8A99F2E30B2226c7F74), and its vault is [`0xCe5c02d6cEb2340929F00Ef4D2a418DE9cccfC73`](https://sepolia.basescan.org/address/0xCe5c02d6cEb2340929F00Ef4D2a418DE9cccfC73).
 
-**Base and Reactive mainnet** (`contracts/deployments/base.json`, `rulebook-reactive.json`). Every one is verified on Sourcify with an exact match:
+**Base and Reactive mainnet** (`contracts/deployments/base.json`, `rulebook-reactive.json`). Every one has verified source on Basescan (the four on Base) and on Sourcify, as an exact match:
 
 | Contract | Address | Source |
 | --- | --- | --- |

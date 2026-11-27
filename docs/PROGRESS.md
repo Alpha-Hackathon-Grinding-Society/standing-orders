@@ -373,3 +373,14 @@ Next
 - You: fund the demo wallets, record the video from `docs/DEMO.md`, and paste the link into README, JUDGES.md and SUBMISSION.md
 - You: ask a friend to follow `JUDGES.md` §6 on testnet and note when it worked
 - You: register in the track and submit from `docs/SUBMISSION.md` by Dec 4. After 2026-12-03, a final `make check-live` and usage update close Phase 6.
+
+### Phase 7 update (2026-11-27)
+
+- **Watch link:** `?watch=<address>&net=mainnet` shows the builder's real vault read-only, with no wallet; it is live on Vercel (PR #5).
+- **Arbitrum:** the owner signed on Arbitrum mainnet, and the Rulebook recorded it about a second later (`ActivityRecorded`, chain 42161). The Guardian card now shows Arbitrum activity.
+- **Basescan:** the four Base mainnet contracts have verified source.
+- **Architecture image:** `docs/architecture.svg` and `.png`.
+- **Running costs measured:** ≈ 1.3 REACT/day (about $0.003) for the Rulebook, and ≈ 0.0000011 ETH (about $0.002) per split callback.
+- **Mainnet showcase:** the Rule 2 claim and full Guardian cycle (`make showcase-mainnet`) are scripted and simulated. They wait for the user's approval and funds.
+- `check-live` reads Reactive logs in 20k-block windows: the public RPC now caps `eth_getLogs` at ≈ 25k blocks. All 72 checks pass.
+
