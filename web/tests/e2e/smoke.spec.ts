@@ -106,6 +106,23 @@ test("Money map: sources as tabs, payments as a wheel, a picked payment links to
   await expect(map.getByText("Claim and secure is off.")).toBeVisible();
 });
 
+test("Saving days: one square per day, the latest payday picked, arrows move between days", async ({ page }) => {
+  await page.goto("/?preview=active");
+  const card = page.getByRole("region", { name: "// Saving days" });
+  await expect(card.getByText(/^last \d+ weeks$/)).toBeVisible();
+  // The sample has a payment two days ago: it is picked first, and its payment is listed with its transaction.
+  const picked = card.locator('button[aria-pressed="true"]');
+  await expect(picked).toHaveAttribute("aria-label", /: 1 payment$/);
+  await expect(card.getByText(/^income 100\.00 USDC/)).toBeVisible();
+  await expect(card.getByText("Streak")).toBeVisible();
+  await expect(card.getByText(/^15 of \d+$/)).toBeVisible();
+  // Down one day from the payday is a quiet day.
+  await picked.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(card.locator('button[aria-pressed="true"]')).toHaveAttribute("aria-label", /: nothing came in$/);
+  await expect(card.locator('button[aria-pressed="true"]')).toBeFocused();
+});
+
 test("Money map: a More cue turns the wheel to payments off the arc", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/?preview=active");

@@ -200,7 +200,7 @@ describe("mapGroups", () => {
   });
 
   it("an empty source says why in plain words", () => {
-    const none: MoneySources = { income: [], vesting: [], deposits: [] };
+    const none: MoneySources = { income: [], vesting: [], deposits: [], all: [] };
     const [income, vesting, deposits] = mapGroups(data, none);
     expect(income.empty).toBe("No payments yet from your 2 listed senders.");
     expect(vesting.empty).toBe("Claim and secure is off.");

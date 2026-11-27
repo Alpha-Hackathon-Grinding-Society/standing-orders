@@ -20,6 +20,7 @@ import { BootContext } from "./motion/BootContext";
 import { Reveal } from "./motion/Reveal";
 import { RecentActions } from "./RecentActions";
 import { RuleCards } from "./RuleCards";
+import { SavingDays } from "./SavingDays";
 import { SectionNav } from "./SectionNav";
 import { SetupFlow } from "./SetupFlow";
 import { StatRow } from "./StatRow";
@@ -222,12 +223,23 @@ function Body({
     );
   }
 
-  // Wide screens: the money map takes two thirds, on the left, held in view while the cards scroll
-  // in the third on the right. Narrower ones stack the map, two thirds of the screen tall, above them.
+  // Wide screens: the money map and the saving days under it take two thirds, on the left, held in view
+  // while the cards scroll in the third on the right. Narrower ones stack them above the cards.
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start">
-      <div className="xl:sticky xl:top-6 xl:h-[calc(100dvh-3rem)] xl:max-h-[64rem]">
-        <MoneyMap data={data} sources={sources} failed={sourcesFailed} preview={preview} now={now} />
+      <div className="flex min-w-0 flex-col gap-8 xl:sticky xl:top-6 xl:h-[calc(100dvh-3rem)] xl:max-h-[64rem]">
+        <div className="xl:min-h-0 xl:flex-1">
+          <MoneyMap data={data} sources={sources} failed={sourcesFailed} preview={preview} now={now} />
+        </div>
+        <Reveal>
+          <SavingDays
+            network={data.network}
+            sources={sources}
+            failed={sourcesFailed}
+            since={history?.since}
+            now={now}
+          />
+        </Reveal>
       </div>
       <div className="flex min-w-0 flex-col gap-8">
         <div className="flex flex-col gap-4">
