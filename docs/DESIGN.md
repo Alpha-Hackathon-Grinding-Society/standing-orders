@@ -307,6 +307,17 @@ Two thirds of the dashboard on wide screens (1280px and up), on the left and hel
 - **Addresses:** payment labels shorten addresses to `0x1501…0502` (first 6, last 4), an exception to the 6–8 + 6–8 rule because the wheel's labels are 140–160px wide. The full address is in the label's tooltip and in the picked-payment line.
 - **Accessibility:** the drawing is `aria-hidden`; the sources are a `tablist` (arrow keys, Home, End; each tab `aria-controls` the list) and the payments a `listbox` of `option`s whose active option is the one at the middle until one is picked, announced through a polite live region. A failed read shows `(x) FAILED` with what to do.
 
+## Saving days
+
+A GitHub-style heatmap under the money map, in a shared `Panel` titled `// SAVING DAYS`.
+
+- **The grid.** One 14px square per day, in columns of seven (Sunday first), as many weeks as fit the card, from 8 up to 53.
+- **The shade.** A day's shade counts the payments that came in that day: income Steward splits, vesting claims and deposits. The levels are 0, 1, 2, 3–4, and 5 or more.
+- **The colours.** Empty days use `surface-raised`, the heatmap-cell surface. Busier days use Maya at 50 / 65 / 80 / 100%; the faintest shade still reaches 3:1 against the panel. Days before the vault existed are a fainter `surface-raised/40` and cannot be picked.
+- **Picking a day.** The newest payday is picked first. Pick a day with the pointer or the arrow keys (roving tabindex; Home and End jump to the ends). The picked day's date, count and payments, with transaction links, are listed under the grid in mono, so colour is never the only carrier.
+- **The footer.** `STREAK`: days in a row with a payment, where a quiet today doesn't break it yet. `BEST`: the longest run. `DAYS WITH MONEY IN`: n of the days since setup. Then a less-to-more legend.
+- **Known trade-off.** The 14px squares are below the 44px touch target. On touch screens, a tap still picks a day, and the details below the grid are the readable part.
+
 ## Applying it to our three apps
 
 ### Reflex (Every Second Counts)

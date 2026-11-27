@@ -126,7 +126,7 @@ export function previewHistory(state: PreviewState, now: number): StewardHistory
  * by hand in different tokens. Claim and secure is off in this sample, so vesting is empty.
  */
 export function previewSources(state: PreviewState, now: number): MoneySources {
-  if (state === "novault") return { income: [], vesting: [], deposits: [] };
+  if (state === "novault") return { income: [], vesting: [], deposits: [], all: [] };
   const inflow = (
     i: number,
     from: Address,
@@ -173,7 +173,11 @@ export function previewSources(state: PreviewState, now: number): MoneySources {
     inflow(21, USER, "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", "cbBTC", 8, 200_000n, 20),
     inflow(22, USER, USDC, "USDC", 6, usdc(50), 40),
   ];
-  return { income, vesting: [], deposits };
+  const all = [
+    ...income.map((item) => ({ ...item, source: "income" as const })),
+    ...deposits.map((item) => ({ ...item, source: "deposits" as const })),
+  ].sort((a, b) => b.at - a.at);
+  return { income, vesting: [], deposits, all };
 }
 
 const PREVIEW_HEAD = 34_000_000;

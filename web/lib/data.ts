@@ -333,10 +333,17 @@ export type MoneySources = {
   vesting: Inflow[];
   /** Tokens the owner deposited into the vault by hand. */
   deposits: Inflow[];
+  /** Every source together, newest first, up to DAYS_LIMIT: what the saving-days heatmap counts per day. */
+  all: SourcedInflow[];
 };
+
+export type Source = "income" | "vesting" | "deposits";
+export type SourcedInflow = Inflow & { source: Source };
 
 /** Payments kept per source; older ones are counted out of the map. */
 export const SOURCE_LIMIT = 40;
+/** Payments kept across all sources for the saving-days heatmap: about a year of daily activity. */
+export const DAYS_LIMIT = 400;
 
 /**
  * The money map's payments, read from three kinds of logs per chunk: USDC `Transfer` from any listed
@@ -351,7 +358,7 @@ export async function loadSources(
 ): Promise<MoneySources> {
   const network = NETWORKS[key];
   const d = network.deployment;
-  if (!d) return { income: [], vesting: [], deposits: [] };
+  if (!d) return { income: [], vesting: [], deposits: [], all: [] };
   const client = baseClient(network, network.logsRpc);
   const latest = await client.getBlockNumber();
 
@@ -391,7 +398,7 @@ export async function loadSources(
   });
 
   type Raw = Omit<Inflow, "symbol" | "decimals" | "at" | "block" | "logIndex"> & { block: bigint; index: number };
-  const lists: Record<keyof MoneySources, Raw[]> = { income: [], vesting: [], deposits: [] };
+  const lists: Record<Source, Raw[]> = { income: [], vesting: [], deposits: [] };
   for (const log of chunks.flat()) {
     const hash = log.transactionHash as Hex;
     const base = { id: `${hash}:${log.logIndex}`, hash, block: log.blockNumber ?? 0n, index: log.logIndex ?? 0 };
@@ -404,10 +411,15 @@ export async function loadSources(
     }
   }
   const newestFirst = (a: Raw, b: Raw) => (a.block === b.block ? b.index - a.index : a.block > b.block ? -1 : 1);
-  for (const k of Object.keys(lists) as (keyof MoneySources)[]) {
+  const sources: Source[] = ["income", "vesting", "deposits"];
+  const recent = sources
+    .flatMap((source) => lists[source].map((item) => ({ ...item, source })))
+    .sort(newestFirst)
+    .slice(0, DAYS_LIMIT);
+  for (const k of sources) {
     lists[k] = lists[k].sort(newestFirst).slice(0, SOURCE_LIMIT);
   }
-  const all = [...lists.income, ...lists.vesting, ...lists.deposits];
+  const all = [...lists.income, ...lists.vesting, ...lists.deposits, ...recent];
 
   const tokens = [...new Set(all.map((item) => item.token.toLowerCase() as Address))];
   // Token reads go to the main RPC, which serves multicall; the logs RPC is only for wide log ranges.
@@ -455,7 +467,12 @@ export async function loadSources(
       ...tokenInfo.get(token.toLowerCase() as Address)!,
       at: times.get(block) ?? 0,
     }));
-  return { income: finish(lists.income), vesting: finish(lists.vesting), deposits: finish(lists.deposits) };
+  return {
+    income: finish(lists.income),
+    vesting: finish(lists.vesting),
+    deposits: finish(lists.deposits),
+    all: recent.map((item) => ({ ...finish([item])[0], source: item.source })),
+  };
 }
 
 /** What the money map's payment panel shows beyond the payment itself, read from its transaction. */
