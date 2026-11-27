@@ -50,6 +50,9 @@ Each rule action takes three transactions: the event on Base (the origin), your 
 
 The builder's own Steward vault on Base mainnet has run since **2026-11-26** on real income, with Rule 1 and the Guardian on: 20% of USDC from one listed sender, at most 5 USDC per 30 days, and the Guardian set to 90 days of silence and 14 of grace, watching Base and Arbitrum. Every rule action, with its three hashes, plus REACT spent per day, is in [docs/MAINNET_USAGE.md](docs/MAINNET_USAGE.md). Run `make check-live` for its state right now, or [watch it in the app](https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet).
 
+> "I just need to transfer to my wallet, and Steward saves for me without me knowing."
+> — Daniel, builder and first user
+
 **What it costs to run.** Measured on mainnet: the Rulebook spends about **1.3 REACT a day** on quiet days (about **$0.003 a day**), and each automatic split costs the executor about **0.0000011 ETH** of Base gas (about **$0.002**). Prices from 2026-11-26: REACT $0.0020, ETH $1,698. You pay no gas yourself for anything Steward does.
 
 ## Architecture

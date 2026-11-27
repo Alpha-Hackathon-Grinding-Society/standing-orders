@@ -37,6 +37,8 @@ Set It and Forget It
 
 **It's live on mainnet.** The builder's own vault has run on Base mainnet with Reactive mainnet since 26 November 2026, on real income. Real splits have moved USDC into the vault in about 1.5 seconds from payment to savings, and the Guardian has recorded the owner's activity. Rule 1 also ignored an address-poisoning payment from a look-alike sender. It costs about a quarter of a cent a day to keep the rules running (1.3 REACT) and about a fifth of a cent of Base gas per automatic split. Anyone can open the live vault in the app, read-only, from the link above. Every mainnet contract is verified: on Basescan for the Base contracts, and on Sourcify as an exact match for all of them, the Rulebook on Reactive included. `node scripts/check-live.mjs` re-checks every recorded loop from public RPCs, with no keys.
 
+In the first user's words: *"I just need to transfer to my wallet, and Steward saves for me without me knowing."* (Daniel, builder and first user)
+
 **Safety.** Funds can reach only the user's vault, their cold wallet (through the vault), or their beneficiary after Warning plus a full grace period. The owner can always withdraw, even while paused. Beneficiary and cold-wallet changes wait 24 hours. Steward's own automated moves never count as the user being alive. Each of these seven limits is enforced in the contracts and checked by an invariant suite of 1,000 runs × 50 steps.
 
 **Built with.** Solidity, Foundry and `reactive-lib-omni`; OpenZeppelin; Next.js, wagmi, viem and RainbowKit. 124 contract tests (unit, fuzz, invariant, fork) and 84 app tests. Slither triaged.

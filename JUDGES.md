@@ -49,6 +49,9 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 | SavingsVault (the builder's) | Base | `0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75` | [Sourcify](https://repo.sourcify.dev/8453/0xD5f071D9e4E32a2f4004742AFFD77C127f14Dc75) |
 | Rulebook (the builder's) | Reactive | `0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a` | [Sourcify](https://repo.sourcify.dev/1597/0x90104E9200e95D46E85c2Bdb14d223A60Ec5D31a) |
 
+> "I just need to transfer to my wallet, and Steward saves for me without me knowing."
+> — Daniel, builder and first user
+
 ## 3. Testnet: all three rules, including the Guardian's full cycle
 
 Every rule has an origin, Reactive and callback hash in the [README](README.md#on-chain-evidence) and in [docs/TX_HASHES.md](docs/TX_HASHES.md). These are the ones that matter most:
