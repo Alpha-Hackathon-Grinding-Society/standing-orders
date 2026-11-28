@@ -23,6 +23,16 @@ The ignored payment was an address-poisoning attempt: dust from an address made 
 
 A small second vault owned by the builder's PC wallet `0x1501…0502`, set up to show Rule 2 and the Guardian's full cycle on mainnet within one evening. It holds a real `VestingWallet` with 0.5 USDC, and its beneficiary is the builder's main wallet. Setup hashes and every step are in `docs/TX_HASHES.md` ("Mainnet showcase").
 
+| Date (UTC) | Action | Reactive tx | Callback tx | Result |
+| --- | --- | --- | --- | --- |
+| 2026-11-27 19:02 | Rule 2: hourly claim (cron) | [0x21160c3d…13cc](https://reactscan.net/tx/0x21160c3da6cbcde9c38752579c1c965d178883434402732f7c06321d127d13cc) | [0xc7c72ff1…565f](https://basescan.org/tx/0xc7c72ff1a5e2dd1a01e99c540d3e695abb3d0614fc9095728c21705273cf565f) | +0.168981 USDC claimed into the vault |
+| 2026-11-27 20:07 | Rule 2: hourly claim (cron) | [0x5ec4c07e…2247](https://reactscan.net/tx/0x5ec4c07e2900c5ec3910e19a8ceae067a797815ccbd70baeb5e9c9ec54f72247) | [0x12df84f3…7fe0](https://basescan.org/tx/0x12df84f3b6c7362a60fb47ff5f5ee1e1660ea08f5f93fce7def4501e70547fe0) | +0.181019 USDC |
+| 2026-11-27 21:12 | Rule 2: hourly claim (cron) | [0x5831bed2…8441](https://reactscan.net/tx/0x5831bed2e6a34c8db11ef0ae22c74f4e21c8a9a974b5ac4200095c7d4e7c8441) | [0xb6ac9506…b8de](https://basescan.org/tx/0xb6ac9506b431c041672dddd466f9814275997dc2aa5f2669dd0996b68941b8de) | +0.15 USDC; all 0.5 USDC vested and claimed |
+| 2026-11-27 22:17 | Guardian: Warning after 4 h of silence | [0x2805a468…5870](https://reactscan.net/tx/0x2805a46851af20c5d874450fea727d2fe66900a66e4cbfbf3b20d1bd94a05870) | — | `GuardianWarning` |
+| 2026-11-27 23:35 | Guardian: release after the 1 h grace | [0x22b859ac…6acf](https://reactscan.net/tx/0x22b859ac7fe4b13f2690279e4400621a0678d77b3ade302110f47654bb076acf) | [0x4915d13e…97e7](https://basescan.org/tx/0x4915d13ec468f3b11073418df741f102266e94fa8559c75642efa07b648697e7) | 0.5 USDC to the beneficiary; the Rulebook stopped |
+
+REACT: funded with 5, 4.54 left after the full cycle (≈ 0.46 REACT for one evening with 15-minute Guardian checks and hourly claims).
+
 ## REACT spent
 
 Rulebook funded with 30 REACT at 01:58 UTC on 2026-11-26 (deploy fee paid separately by the wallet). Read the balance with `make status NET=reactive`, or with no keys at all, `make check-live`.

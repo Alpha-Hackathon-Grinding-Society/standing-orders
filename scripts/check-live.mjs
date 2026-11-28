@@ -116,11 +116,13 @@ async function checkLoop(loop) {
   }
 
   // The Rulebook's own event in the Reactive transaction, and the origin it names. One cron tick can emit several
-  // (a claim and a release), so a loop with a callback looks for the event that asked for that callback.
+  // (a claim and a release), so a loop with a callback looks for the event that asked for that callback, and one
+  // without a callback for the event it names in `event`.
   const executorLog = loop.callback && steps.callback.logs.find((l) => EXECUTOR_EVENTS[l.topics[0]]);
   const done = executorLog && EXECUTOR_EVENTS[executorLog.topics[0]];
   const rulebookLogs = steps.reactive.logs.filter((l) => RULEBOOK_EVENTS[l.topics[0]]);
-  const rulebookLog = rulebookLogs.find((l) => RULEBOOK_EVENTS[l.topics[0]].name === done?.asked) ?? rulebookLogs[0];
+  const wanted = done?.asked ?? loop.event;
+  const rulebookLog = rulebookLogs.find((l) => RULEBOOK_EVENTS[l.topics[0]].name === wanted) ?? rulebookLogs[0];
   const event = rulebookLog && RULEBOOK_EVENTS[rulebookLog.topics[0]];
   check(Boolean(event), `Reactive tx emits ${event ? event.name : "no Rulebook event"}${rulebookLog ? ` from ${rulebookLog.address}` : ""}`);
   let origin = loop.origin?.tx;

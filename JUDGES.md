@@ -35,6 +35,14 @@ The user's wallet set Steward up from the app and signed every step. The vault h
 | Guardian: a signed action on **Arbitrum** (second chain) | [0xd638…84a4](https://arbiscan.io/tx/0xd63845c299bf3023c0a571ba914fbc89eb9d6f22331d921b09be306e1e2e84a4) (Arbitrum) | [0x8d99…1401](https://reactscan.net/tx/0x8d99bf34e30adb81882d6a6e472a3fbd982169aa61197d8cd05414a20c181401) | none needed |
 | Rule 1 ignored a look-alike sender (an address-poisoning attempt) | `0x9b0f…b960` (named in the event) | [0xf354…c7b9](https://reactscan.net/tx/0xf354c11354e969143e7d550397dea80a36d0911e74ca4a5aed8391c65ff9c7b9) | none, by design |
 
+**Rule 2 and the Guardian's full cycle, on mainnet too.** On 2026-11-27, a second small showcase vault ran on short timers with real USDC: an OpenZeppelin `VestingWallet` holding 0.5 USDC, hourly claims, and the Guardian set to warn after 4 h of silence and release after 1 h of grace. Nobody touched it after setup; every step came from Reactive's cron:
+
+| What happened | Trigger | Reactive (1597) | Callback (Base) |
+| --- | --- | --- | --- |
+| Rule 2: claim from the `VestingWallet` into the vault (first of three; 0.5 USDC in all) | cron, 19:02 UTC | [0x2116…13cc](https://reactscan.net/tx/0x21160c3da6cbcde9c38752579c1c965d178883434402732f7c06321d127d13cc) | [0xc7c7…565f](https://basescan.org/tx/0xc7c72ff1a5e2dd1a01e99c540d3e695abb3d0614fc9095728c21705273cf565f) |
+| Guardian: **Warning** after 4 h of silence | cron, 22:17 UTC | [0x2805…5870](https://reactscan.net/tx/0x2805a46851af20c5d874450fea727d2fe66900a66e4cbfbf3b20d1bd94a05870) | none |
+| Guardian: **Released**, 0.5 USDC to the beneficiary after the grace | cron, 23:35 UTC | [0x22b8…6acf](https://reactscan.net/tx/0x22b859ac7fe4b13f2690279e4400621a0678d77b3ade302110f47654bb076acf) | [0x4915…97e7](https://basescan.org/tx/0x4915d13ec468f3b11073418df741f102266e94fa8559c75642efa07b648697e7) |
+
 **Speed.** From the moment a payment lands to the moment the share sits in the vault takes **7–8 Base blocks, about 1.5 seconds** on mainnet and 8–10 blocks (about 2 seconds) on testnet. Base makes a block every 0.2 s. The full table, measured from block timestamps, is printed by the script.
 
 **What it costs to run.** Measured on mainnet: the Rulebook spends about **1.3 REACT a day** on quiet days (about **$0.003 a day**), and each automatic split costs the executor about **0.0000011 ETH** of Base gas (about **$0.002**). Prices from 2026-11-26: REACT $0.0020, ETH $1,698. You pay no gas yourself for anything Steward does.

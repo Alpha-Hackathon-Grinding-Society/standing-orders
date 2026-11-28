@@ -4,7 +4,7 @@ Every scripted testnet and mainnet run, with the network, the rule and what it s
 
 Explorers: Base Sepolia https://sepolia.basescan.org/tx/ · Lasna https://lasna.reactscan.net/tx/ · Base https://basescan.org/tx/ · Reactive https://reactscan.net/tx/
 
-## Mainnet showcase: Rule 2 and a full Guardian cycle with real USDC (2026-11-27)
+## Mainnet showcase: Rule 2 and a full Guardian cycle with real USDC (2026-11-27, released 23:35 UTC)
 
 Approved by the user ("deploy to mainnet", 2026-11-27) with 0.5 USDC and 7 REACT, sent from their main wallet to the PC wallet `0x1501…0502`, which owns this second vault. Settings: a real OpenZeppelin `VestingWallet` vests 0.5 USDC from 18:01 to 21:01 UTC. The Rulebook claims hourly; the Guardian warns after 4 h of silence and releases after 1 h of grace, checked every 15 min on `Cron1000`. The beneficiary is the user's main wallet `0x810f…3276`. Runner: `script/e2e/showcase.sh` (`make showcase-mainnet`).
 
@@ -15,7 +15,28 @@ Approved by the user ("deploy to mainnet", 2026-11-27) with 0.5 USDC and 7 REACT
 | Rulebook deploy | Reactive | [0xa552f4a4…523c](https://reactscan.net/tx/0xa552f4a41b5cb66d7765e985fc407cfc32a7b4e2777b2167cbd7991c8258523c) | `0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686`, 5 REACT. It shares its address with the Base VaultFactory: both are the PC wallet's first contract on their chains. |
 | Permit + createVault | Base | [0x04e265b6…80e2b](https://basescan.org/tx/0x04e265b6f970694dc727dacf6ebdd4e14c415adbc84f224dfb32ce21cac80e2b) | vault `0xBBEd82D10845f688CFe3130444f445686A7182a8`, allowance 1 USDC, beneficiary `0x810f…3276` |
 
-Claims, the warning and the release follow on their own; their hashes are added below as they land.
+Everything below ran on its own: no transaction was sent to the showcase vault, its Rulebook or the vesting wallet after setup. Each row was checked by `node scripts/check-live.mjs --mainnet` (cron-triggered, so there is no origin transaction).
+
+### Rule 2: hourly claims from the VestingWallet (0.5 USDC claimed in three ticks)
+
+| Time (UTC) | Reactive: `ClaimRequested` | Base callback: `ClaimExecuted` | Claimed |
+| --- | --- | --- | --- |
+| 19:02 | [0x21160c3d…13cc](https://reactscan.net/tx/0x21160c3da6cbcde9c38752579c1c965d178883434402732f7c06321d127d13cc) (nonce 1) | [0xc7c72ff1…565f](https://basescan.org/tx/0xc7c72ff1a5e2dd1a01e99c540d3e695abb3d0614fc9095728c21705273cf565f) | 0.168981 USDC |
+| 20:07 | [0x5ec4c07e…2247](https://reactscan.net/tx/0x5ec4c07e2900c5ec3910e19a8ceae067a797815ccbd70baeb5e9c9ec54f72247) (nonce 2) | [0x12df84f3…7fe0](https://basescan.org/tx/0x12df84f3b6c7362a60fb47ff5f5ee1e1660ea08f5f93fce7def4501e70547fe0) | 0.181019 USDC |
+| 21:12 | [0x5831bed2…8441](https://reactscan.net/tx/0x5831bed2e6a34c8db11ef0ae22c74f4e21c8a9a974b5ac4200095c7d4e7c8441) (nonce 3) | [0xb6ac9506…b8de](https://basescan.org/tx/0xb6ac9506b431c041672dddd466f9814275997dc2aa5f2669dd0996b68941b8de) | 0.15 USDC (fully vested) |
+
+Two later hourly ticks (22:17, nonce 4; 23:22, nonce 5) found nothing left to release, so the executor returned early (C-2).
+
+### Guardian: Active → Warning → Released
+
+| Time (UTC) | Step | Network | Tx | Result |
+| --- | --- | --- | --- | --- |
+| 18:02 | Last signed activity (setup) | Base | — | the 4-hour silence clock starts |
+| 22:17:33 | Warning | Reactive | [0x2805a468…5870](https://reactscan.net/tx/0x2805a46851af20c5d874450fea727d2fe66900a66e4cbfbf3b20d1bd94a05870) | `GuardianWarning`, on the first 15-minute check past 4 h of silence |
+| 23:35:44 | Release | Reactive | [0x22b859ac…6acf](https://reactscan.net/tx/0x22b859ac7fe4b13f2690279e4400621a0678d77b3ade302110f47654bb076acf) | `GuardianReleased` (nonce 6), on the first check past the 1-hour grace; the Rulebook then stops |
+| 23:35:46 | Callback | Base | [0x4915d13e…97e7](https://basescan.org/tx/0x4915d13ec468f3b11073418df741f102266e94fa8559c75642efa07b648697e7) | `VaultReleased`, delivered by the callback proxy; 0.5 USDC from the vault to the beneficiary `0x810f…3276`. The vault reads 0.00. |
+
+The Rulebook spent about 0.46 REACT over the evening (5 → 4.54 REACT).
 
 ## Phase 4: mainnet vault, Base ↔ Reactive mainnet (2026-11-26)
 
