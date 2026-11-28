@@ -384,3 +384,16 @@ Next
 - **Mainnet showcase:** the Rule 2 claim and full Guardian cycle (`make showcase-mainnet`) are scripted and simulated. They wait for the user's approval and funds.
 - `check-live` reads Reactive logs in 20k-block windows: the public RPC now caps `eth_getLogs` at ≈ 25k blocks. All 72 checks pass.
 
+### Phase 7 update (2026-11-28)
+
+- **Mainnet showcase complete; all three rules have now run on mainnet.**
+  - Three hourly cron claims moved 0.5 USDC from an OpenZeppelin `VestingWallet` into the showcase vault (19:02, 20:07 and 21:12 UTC). The next two ticks found nothing left and returned early.
+  - The Guardian warned at 22:17:33 UTC after 4 h of silence.
+  - It released at 23:35:44 UTC after the 1 h grace. The `VaultReleased` callback on Base at 23:35:46 sent 0.5 USDC to the beneficiary, and the Rulebook stopped.
+  - Hashes are in TX_HASHES ("Mainnet showcase"), MAINNET_USAGE, README, JUDGES.md and SUBMISSION.md.
+- **`check-live`:** covers the three new mainnet loops, and a loop without a callback can now name the event it expects (`event`). All mainnet checks pass.
+- **Demo video:** produced automatically, with no filming.
+  - 2:18 at 1080p, with an AI voice (Microsoft neural "Andrew" via edge-tts), app footage recorded by Playwright from the production build, cards with real hashes, and burned-in captions.
+  - Scenes 6–7 use a 3-minute time-lapse of the showcase vault through the whole cycle.
+  - The files are local, not in the repo: `Videos/steward-demo.mp4` and `Videos/steward-showcase/timelapse.mp4`.
+- **Open:** about 4.54 REACT is left in the stopped showcase Rulebook. Return it to its owner with `RULEBOOK=0x4461142Af87f775242Ff27B0aBB7Ac8b7BFA9686 make withdraw-react NET=reactive`.

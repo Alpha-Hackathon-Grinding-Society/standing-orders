@@ -38,6 +38,14 @@ Each rule action takes three transactions: the event on Base (the origin), your 
 | Guardian activity on a second chain: a signed approval on Arbitrum | Arbitrum → Reactive | [0xd638…84a4](https://arbiscan.io/tx/0xd63845c299bf3023c0a571ba914fbc89eb9d6f22331d921b09be306e1e2e84a4) | [0x8d99…1401](https://reactscan.net/tx/0x8d99bf34e30adb81882d6a6e472a3fbd982169aa61197d8cd05414a20c181401) | none needed |
 | Rule 1 ignored a look-alike sender (address poisoning) | Base → Reactive | `0x9b0f…b960` | [0xf354…c7b9](https://reactscan.net/tx/0xf354c11354e969143e7d550397dea80a36d0911e74ca4a5aed8391c65ff9c7b9) | none, by design |
 
+**Mainnet showcase** (a second small vault, 2026-11-27): Rule 2 and the Guardian's full cycle with real USDC, all triggered by cron with nobody pressing anything:
+
+| Rule | Network | Origin tx | Reactive tx | Callback tx |
+| --- | --- | --- | --- | --- |
+| Rule 2 claim from an OpenZeppelin `VestingWallet` (first of three hourly claims, 0.5 USDC in all) | Reactive cron → Base | `Cron1000` tick | [0x2116…13cc](https://reactscan.net/tx/0x21160c3da6cbcde9c38752579c1c965d178883434402732f7c06321d127d13cc) | [0xc7c7…565f](https://basescan.org/tx/0xc7c72ff1a5e2dd1a01e99c540d3e695abb3d0614fc9095728c21705273cf565f) |
+| Guardian warning after 4 h of silence | Reactive cron | `Cron1000` tick | [0x2805…5870](https://reactscan.net/tx/0x2805a46851af20c5d874450fea727d2fe66900a66e4cbfbf3b20d1bd94a05870) | none |
+| Guardian release: 0.5 USDC to the beneficiary after the 1 h grace | Reactive cron → Base | `Cron1000` tick | [0x22b8…6acf](https://reactscan.net/tx/0x22b859ac7fe4b13f2690279e4400621a0678d77b3ade302110f47654bb076acf) | [0x4915…97e7](https://basescan.org/tx/0x4915d13ec468f3b11073418df741f102266e94fa8559c75642efa07b648697e7) |
+
 **How fast.** Measured by `scripts/check-live.mjs` from block numbers and timestamps:
 
 | Loop | Payment → share in the vault |
@@ -49,6 +57,8 @@ Each rule action takes three transactions: the event on Base (the origin), your 
 ## Mainnet usage
 
 The builder's own Steward vault on Base mainnet has run since **2026-11-26** on real income, with Rule 1 and the Guardian on: 20% of USDC from one listed sender, at most 5 USDC per 30 days, and the Guardian set to 90 days of silence and 14 of grace, watching Base and Arbitrum. Every rule action, with its three hashes, plus REACT spent per day, is in [docs/MAINNET_USAGE.md](docs/MAINNET_USAGE.md). Run `make check-live` for its state right now, or [watch it in the app](https://steward-reactive.vercel.app/?watch=0x810fCBF8A695Ffa0e4480207c667995139F33276&net=mainnet).
+
+**All three rules have run on mainnet.** A second, small showcase vault ran Rule 2 and the Guardian's full cycle with real USDC in one evening, on short timers. An OpenZeppelin `VestingWallet` vested 0.5 USDC, and three hourly claims moved all of it into the vault. After 4 hours with no signed activity, the Guardian warned at 22:17 UTC; after a further hour of silence, it released the 0.5 USDC to the beneficiary at 23:35 UTC, then stopped. Hashes are in [docs/TX_HASHES.md](docs/TX_HASHES.md) ("Mainnet showcase").
 
 > "I just need to transfer to my wallet, and Steward saves for me without me knowing."
 > — Daniel, builder and first user

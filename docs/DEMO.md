@@ -11,6 +11,18 @@
 
 Every scene has a **fallback** of real on-chain hashes, so a failed live take never blocks the video.
 
+## The finished video (made automatically, 2026-11-28)
+
+The cut below was produced without filming: **2:18**, 1080p, with an AI voice and burned-in captions.
+
+- **Voice:** Microsoft's neural voice "Andrew" (edge-tts), reading the scene lines, with word timings used to cut each scene and time its captions.
+- **App footage:** recorded by Playwright from the production build, at 140% zoom. The real mainnet vault is shown through its read-only `?watch` link; the setup form in `?preview` mode, where nothing is signed.
+- **Cards:** in Steward's style. Every number and hash on them is real, taken from `scripts/check-live.mjs`, the claim scan and this repo's docs.
+- **Scenes 6–7:** a time-lapse of the showcase vault's watch page, one frame every 3 minutes from 17:57 to 23:41 UTC on 2026-11-27. It covers the three hourly claims, `[!] WARNING` at 22:17, and `(v) RELEASED` at 23:35, followed by the release's three transactions.
+- **The file is local, not in the repo:** `steward-demo.mp4` (about 9.6 MB); the time-lapse alone is `steward-showcase/timelapse.mp4`.
+
+The script below is the longer manual version. Use it to re-shoot any scene live.
+
 ---
 
 ## 1. Before filming
@@ -94,7 +106,7 @@ Then hold on the `// REVIEW` panel. Sign the three steps, and hold on each `(~) 
 **Fallback:** README testnet row "Rule 1 split" (`0x36a4…` → `0xda7a…` → `0x5dfc…`).
 
 ### Scene 6: claim and secure, on mainnet (1:20–1:40)
-**Show:** the showcase time-lapse clip (`C:\Users\adedo\Videos\steward-showcase\timelapse.webm`): tab 3's vault balance rising with each hourly claim. Cut to Reactscan (tab 5) and open one `ClaimRequested` transaction, then its `ClaimExecuted` callback on Basescan.
+**Show:** the showcase time-lapse clip (`steward-showcase/timelapse.mp4`): tab 3's vault balance rising with each hourly claim. Cut to Reactscan (tab 5) and open one `ClaimRequested` transaction, then its `ClaimExecuted` callback on Basescan.
 **On-screen text:** `MAINNET · REAL USDC · OPENZEPPELIN VESTINGWALLET · 1 HOUR = 1 SECOND`
 **Voiceover:** "Claim and secure works on a clock. This vault on Base mainnet holds a real OpenZeppelin vesting contract. Every hour, a cron tick on Reactive claims whatever has vested and moves it into the vault. No one presses anything."
 **Fallback:** README testnet row "Rule 2 claim" (`0x4a62…` → `0xabf2…`).
@@ -107,7 +119,7 @@ Then hold on the `// REVIEW` panel. Sign the three steps, and hold on each `(~) 
 
 **On-screen text:** `4 HOURS OF SILENCE · 1 HOUR GRACE · SPED UP`, then `RELEASED TO THE BENEFICIARY · MAINNET`
 **Voiceover:** "And this is the Guardian. It watches for anything I sign, on every chain I use. Here I sign one action on Arbitrum, and a second later my clock resets on Reactive. If I go silent, it doesn't act right away. It warns first, and any activity clears the warning. Only after a full grace period of silence does the vault go to the person I chose. Here is that full cycle on mainnet: active, warning, released, and the money arrives with my beneficiary."
-**Hashes:** see "Mainnet showcase" in `docs/TX_HASHES.md`, filled in after the release on 2026-11-28.
+**Hashes:** see "Mainnet showcase" in `docs/TX_HASHES.md`: Warning at 22:17:33 UTC, release at 23:35:44 UTC, 0.5 USDC to the beneficiary at 23:35:46 UTC (2026-11-27).
 **Fallback:** README testnet rows "Guardian warning", "cleared by activity on a second chain" and "release".
 
 ### Scene 8: proof (2:15–2:35)
@@ -138,7 +150,7 @@ github.com/Alpha-Hackathon-Grinding-Society/steward
 
 ## 3. Film in this order (not story order)
 
-1. **Scenes 6–7 footage:** done for you. The time-lapse and the showcase hashes are captured tonight, 2026-11-27/28.
+1. **Scenes 6–7 footage:** done. The time-lapse and the showcase hashes were captured on 2026-11-27, and the release landed at 23:35 UTC.
 2. **Scene 7, beat 1:** the Arbitrum signature (2 minutes, any time).
 3. **Scenes 4–5:** the testnet setup and live split with the fresh account. Tell Claude "pay now" at the right moment.
 4. **Scene 1:** during your next daily payment from Steward Payer.
