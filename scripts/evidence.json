@@ -50,6 +50,24 @@
       "reactive": { "chain": "reactive", "tx": "0xf354c11354e969143e7d550397dea80a36d0911e74ca4a5aed8391c65ff9c7b9" }
     },
     {
+      "net": "mainnet",
+      "rule": "Rule 2 claim on mainnet: vested USDC from an OpenZeppelin VestingWallet into the showcase vault",
+      "reactive": { "chain": "reactive", "tx": "0x21160c3da6cbcde9c38752579c1c965d178883434402732f7c06321d127d13cc" },
+      "callback": { "chain": "base", "tx": "0xc7c72ff1a5e2dd1a01e99c540d3e695abb3d0614fc9095728c21705273cf565f" }
+    },
+    {
+      "net": "mainnet",
+      "rule": "Guardian warning on mainnet after 4 h of silence (showcase vault)",
+      "event": "GuardianWarning",
+      "reactive": { "chain": "reactive", "tx": "0x2805a46851af20c5d874450fea727d2fe66900a66e4cbfbf3b20d1bd94a05870" }
+    },
+    {
+      "net": "mainnet",
+      "rule": "Guardian release on mainnet: 0.5 USDC to the beneficiary after the 1 h grace (showcase vault)",
+      "reactive": { "chain": "reactive", "tx": "0x22b859ac7fe4b13f2690279e4400621a0678d77b3ade302110f47654bb076acf" },
+      "callback": { "chain": "base", "tx": "0x4915d13ec468f3b11073418df741f102266e94fa8559c75642efa07b648697e7" }
+    },
+    {
       "net": "testnet",
       "rule": "Rule 1 split: 20% of 100 USDC",
       "origin": { "chain": "base-sepolia", "tx": "0x36a4200afdf67756bb09d2f24dcfba16862ba0ad182acc5f7c851904dc460095" },
